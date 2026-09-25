@@ -15,16 +15,16 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.miapp.dndcompanion.network.ApiClient;
+import org.json.JSONObject;
 
 /**
- * Pantalla de login con Firebase Authentication.
+ * Pantalla de login con Supabase Auth.
  * Si el usuario ya está logueado, redirige directamente a MainActivity.
  */
 public class LoginActivity extends AppCompatActivity {
 
-    private FirebaseAuth mAuth;
+    private ApiClient api;
     private EditText editEmail, editPassword;
     private Button btnLogin, btnRegistrar;
     private TextView txtError;
@@ -33,16 +33,12 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mAuth = FirebaseAuth.getInstance();
-
-        // Si ya está autenticado va directo al main
-        FirebaseUser usuario = mAuth.getCurrentUser();
-        if (usuario != null) {
-            irAMain(usuario.getEmail());
-            return;
-        }
-
+        api = ApiClient.get(this);
         setContentView(buildLayout());
+        if (api.hasSession()) {
+            btnLogin.setEnabled(false); btnRegistrar.setEnabled(false);
+            loadProfile();
+        }
     }
 
     // Construye el layout de login
@@ -178,7 +174,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void iniciarSesion() {
         String email = editEmail.getText().toString().trim();
-        String pass  = editPassword.getText().toString().trim();
+        String pass  = editPassword.getText().toString();
 
         if (email.isEmpty() || pass.isEmpty()) {
             mostrarError("Completá todos los campos.");
@@ -189,51 +185,35 @@ public class LoginActivity extends AppCompatActivity {
         btnRegistrar.setEnabled(false);
         txtError.setVisibility(View.GONE);
 
-        mAuth.signInWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        irAMain(user != null ? user.getEmail() : email);
-                    } else {
-                        btnLogin.setEnabled(true);
-                        btnRegistrar.setEnabled(true);
-                        mostrarError("Credenciales incorrectas. Verificá tu correo y contraseña.");
-                    }
-                });
+        api.login(email, pass, new ApiClient.Callback() {
+            public void success(Object value) { loadProfile(); }
+            public void failure(String message, int status) { authFailure(message); }
+        });
     }
 
     private void registrar() {
         String email = editEmail.getText().toString().trim();
-        String pass  = editPassword.getText().toString().trim();
+        String pass = editPassword.getText().toString();
+        if (email.isEmpty() || pass.length() < 6) { mostrarError("Ingresá correo y contraseña de al menos 6 caracteres."); return; }
+        btnLogin.setEnabled(false); btnRegistrar.setEnabled(false);
+        api.register(email, pass, new ApiClient.Callback() {
+            public void success(Object value) {
+                if (api.hasSession()) loadProfile();
+                else { authFailure("Revisá tu correo para confirmar la cuenta y luego ingresá."); }
+            }
+            public void failure(String message, int status) { authFailure(message); }
+        });
+    }
 
-        if (email.isEmpty() || pass.isEmpty()) {
-            mostrarError("Completá todos los campos para registrarte.");
-            return;
-        }
-        if (pass.length() < 6) {
-            mostrarError("La contraseña debe tener al menos 6 caracteres.");
-            return;
-        }
-
-        btnLogin.setEnabled(false);
-        btnRegistrar.setEnabled(false);
-        txtError.setVisibility(View.GONE);
-
-        mAuth.createUserWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        Toast.makeText(this, "✦ Cuenta creada. ¡Bienvenido, aventurero!", Toast.LENGTH_LONG).show();
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        irAMain(user != null ? user.getEmail() : email);
-                    } else {
-                        btnLogin.setEnabled(true);
-                        btnRegistrar.setEnabled(true);
-                        String msg = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Error al registrar.";
-                        mostrarError(msg);
-                    }
-                });
+    private void loadProfile() {
+        api.request("GET", "/auth/me", null, new ApiClient.Callback() {
+            public void success(Object value) { if (!isFinishing()) irAMain(((JSONObject)value).optString("email")); }
+            public void failure(String message, int status) { authFailure(message); }
+        });
+    }
+    private void authFailure(String message) {
+        if (isFinishing()) return;
+        btnLogin.setEnabled(true); btnRegistrar.setEnabled(true); mostrarError(message);
     }
 
     private void irAMain(String email) {

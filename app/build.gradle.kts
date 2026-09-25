@@ -1,9 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.gms.google-services")
 }
 
+val localConfig = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun config(name: String): String = (System.getenv(name) ?: localConfig.getProperty(name, ""))
+    .replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
+    buildFeatures { buildConfig = true }
     namespace = "com.miapp.dndcompanion"
     compileSdk {
         version = release(36) {
@@ -17,6 +26,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "SUPABASE_URL", "\"${config("SUPABASE_URL")}\"")
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"${config("SUPABASE_PUBLISHABLE_KEY")}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,10 +56,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    implementation(platform("com.google.firebase:firebase-bom:34.14.1"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-analytics")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 }

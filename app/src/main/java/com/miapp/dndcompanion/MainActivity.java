@@ -25,8 +25,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.miapp.dndcompanion.network.ApiClient;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,9 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String EXTRA_USER_EMAIL = "user_email";
 
-    //Firebase
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    private ApiClient api;
     private String userEmail = "";
 
     //Vistas
@@ -72,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
         userEmail = getIntent().getStringExtra(EXTRA_USER_EMAIL);
         if (userEmail == null) userEmail = "";
 
-        mAuth = FirebaseAuth.getInstance();
-        db    = FirebaseFirestore.getInstance();
+        api = ApiClient.get(this);
+        if (!api.hasSession()) { volverAlLogin(); return; }
 
         // Launcher para seleccionar imagen del avatar
         pickImageLauncher = registerForActivityResult(
@@ -170,8 +170,7 @@ public class MainActivity extends AppCompatActivity {
         View txtVerTodos = findViewById(R.id.txtVerTodosHechizos);
         txtVerTodos.setOnClickListener(v -> abrirGrimorio());
 
-        //Cargar misiones desde Firestore
-        cargarMisionesDesdeFirestore();
+        // Las misiones se recargan desde la API al volver a esta pantalla.
 
         //Hechizos fijos (con imagen personalizada de Supabase)
         for (SpellModel spell : SpellModel.getHechizosFijos()) {
@@ -197,18 +196,15 @@ public class MainActivity extends AppCompatActivity {
             new Handler(Looper.getMainLooper()).postDelayed(this::mostrarHistorial, 150);
         });
 
-        //Nueva misión
-        findViewById(R.id.btnAgregar).setOnClickListener(v -> {
-            v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.btn_press));
-            contador++;
-            agregarMisionDisponible("Nueva misión " + contador,
-                    "Una misión misteriosa te aguarda.", "50 XP");
-        });
-
+        // Refresh data shared with the DM web app.
+        findViewById(R.id.btnAgregar).setOnClickListener(v -> cargarDatos());
+        if (findViewById(R.id.btnAgregar) instanceof TextView) ((TextView)findViewById(R.id.btnAgregar)).setText("Actualizar");
         configurarMenu();
+    }
 
-        // Guardar sesión en Firestore si hay usuario logueado
-        if (!userEmail.isEmpty()) guardarSesionEnFirestore();
+    @Override protected void onResume() {
+        super.onResume();
+        if (api != null && api.hasSession() && layoutDisponibles != null) cargarDatos();
     }
 
     //Aplicar datos de personaje creado
@@ -269,62 +265,52 @@ public class MainActivity extends AppCompatActivity {
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
-    //Firebase
-    private void guardarSesionEnFirestore() {
-        if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
-        Map<String, Object> datos = new HashMap<>();
-        datos.put("email", userEmail);
-        datos.put("ultimaConexion", com.google.firebase.Timestamp.now());
-        db.collection("usuarios").document(uid).set(datos);
+    private void volverAlLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent); finish();
     }
-
-    private void cargarMisionesDesdeFirestore() {
-        if (mAuth.getCurrentUser() == null) {
-            cargarMisionesDefault();
-            return;
-        }
-        String uid = mAuth.getCurrentUser().getUid();
-        db.collection("usuarios").document(uid)
-                .collection("misiones")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        cargarMisionesDefault();
-                        guardarMisionesDefault(uid);
-                    } else {
-                        for (com.google.firebase.firestore.DocumentSnapshot doc
-                                : querySnapshot.getDocuments()) {
-                            String nombre      = doc.getString("nombre");
-                            String descripcion = doc.getString("descripcion");
-                            String recompensa  = doc.getString("recompensa");
-                            if (nombre != null)
-                                agregarMisionDisponible(nombre,
-                                        descripcion != null ? descripcion : "",
-                                        recompensa  != null ? recompensa  : "");
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> cargarMisionesDefault());
+    private void apiError(String message, int status) {
+        if (isFinishing()) return;
+        if (status == 401) { volverAlLogin(); return; }
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
-
-    private void cargarMisionesDefault() {
-        agregarMisionDisponible("Entrega especial",
-                "Entrega un paquete sellado al Gremio de Comerciantes.", "100 XP");
-        agregarMisionDisponible("Caza de bandidos",
-                "Elimina a los bandidos del camino del norte.", "200 XP");
+    private void cargarDatos() {
+        api.request("GET", "/missions", null, new ApiClient.Callback() {
+            public void success(Object value) {
+                if (isFinishing()) return;
+                layoutDisponibles.removeAllViews(); layoutActivas.removeAllViews();
+                JSONArray missions = (JSONArray)value;
+                for (int i = 0; i < missions.length(); i++) {
+                    JSONObject m = missions.optJSONObject(i);
+                    if (m == null) continue;
+                    String reward = m.optString("reward") + " · " + m.optInt("rewardXp") + " XP · " + m.optInt("rewardGold") + " PO";
+                    boolean assigned = contains(m.optJSONArray("assignedTo"), api.userId());
+                    boolean accepted = contains(m.optJSONArray("acceptedBy"), api.userId());
+                    if (!assigned) continue;
+                    if (m.optString("status").equals("completed")) {
+                        layoutActivas.addView(txt("✓ " + m.optString("title") + " — Completada", 13, R.color.dorado, true));
+                    } else if (accepted) agregarMisionActivaAnimada(m.optString("title"), reward);
+                    else agregarMisionDisponible(m.optString("id"), m.optString("title"), m.optString("description"), reward);
+                }
+                if (layoutDisponibles.getChildCount() == 0) layoutDisponibles.addView(txt("No tenés misiones pendientes de aceptar.", 12, R.color.texto_secundario, false));
+            }
+            public void failure(String message, int status) { apiError(message, status); }
+        });
+        api.request("GET", "/characters", null, new ApiClient.Callback() {
+            public void success(Object value) {
+                if (isFinishing()) return;
+                JSONArray characters = (JSONArray)value;
+                JSONObject c = characters.optJSONObject(0);
+                if (c != null) aplicarDatosPersonaje(c.optString("name"), c.optString("race"), c.optString("characterClass"), c.optInt("level", 1), c.optString("alignment"), c.optInt("strength",10), c.optInt("dexterity",10), c.optInt("constitution",10), c.optInt("intelligence",10), c.optInt("wisdom",10), c.optInt("charisma",10));
+            }
+            public void failure(String message, int status) { apiError(message, status); }
+        });
     }
-
-    private void guardarMisionesDefault(String uid) {
-        String[][] misiones = {
-                {"Entrega especial", "Entrega un paquete sellado al Gremio de Comerciantes.", "100 XP"},
-                {"Caza de bandidos", "Elimina a los bandidos del camino del norte.", "200 XP"}
-        };
-        for (String[] m : misiones) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("nombre", m[0]); data.put("descripcion", m[1]); data.put("recompensa", m[2]);
-            db.collection("usuarios").document(uid).collection("misiones").add(data);
-        }
+    private boolean contains(JSONArray array, String value) {
+        if (array == null) return false;
+        for (int i = 0; i < array.length(); i++) if (value.equals(array.optString(i))) return true;
+        return false;
     }
 
     //Hechizos
@@ -466,7 +452,7 @@ public class MainActivity extends AppCompatActivity {
         return item;
     }
 
-    private void agregarMisionDisponible(String nombre, String descripcion, String recompensa) {
+    private void agregarMisionDisponible(String missionId, String nombre, String descripcion, String recompensa) {
         LinearLayout wrapper = new LinearLayout(this);
         wrapper.setOrientation(LinearLayout.VERTICAL);
 
@@ -508,8 +494,10 @@ public class MainActivity extends AppCompatActivity {
         btn.setOnClickListener(v -> {
             btn.setEnabled(false);
             btn.startAnimation(AnimationUtils.loadAnimation(this, R.anim.btn_press));
-            new Handler(Looper.getMainLooper()).postDelayed(
-                    () -> aceptarMisionConAnimacion(nombre, recompensa, wrapper), 120);
+            api.request("POST", "/missions/" + missionId + "/accept", null, new ApiClient.Callback() {
+                public void success(Object value) { if (!isFinishing()) cargarDatos(); }
+                public void failure(String message, int status) { btn.setEnabled(true); apiError(message, status); }
+            });
         });
 
         item.addView(icono); item.addView(info); item.addView(btn);
@@ -606,11 +594,11 @@ public class MainActivity extends AppCompatActivity {
         btnOk.setOnClickListener(v -> d.dismiss());
         btnCerrar.setOnClickListener(v -> {
             d.dismiss();
-            mAuth.signOut();
-            Intent i = new Intent(this, LoginActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            api.logout(new ApiClient.Callback() {
+                public void success(Object value) { volverAlLogin(); }
+                public void failure(String message, int status) { Toast.makeText(MainActivity.this, "Sesión local cerrada; no se pudo confirmar el cierre remoto.", Toast.LENGTH_LONG).show(); volverAlLogin(); }
+            });
+
         });
         d.show();
     }
