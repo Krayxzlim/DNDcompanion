@@ -128,7 +128,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         header.addView(titulo);
 
         TextView sub = new TextView(this);
-        sub.setText("RAZAS VÍA OPEN5E API  ·  GUARDADO EN FIRESTORE");
+        sub.setText("RAZAS VÍA OPEN5E API  ·  PERSONAJE SINCRONIZADO");
         sub.setTextColor(color(R.color.texto_secundario));
         sub.setTextSize(8);
         sub.setLetterSpacing(0.08f);

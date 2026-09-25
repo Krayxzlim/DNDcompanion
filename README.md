@@ -5,8 +5,8 @@ Aplicación Java para jugadores de D&D. Esta rama reemplaza Firebase Auth/Firest
 ## Configuración
 
 1. Abrir con Android Studio compatible con el proyecto (AGP 9.1.1, Gradle 9.3.1, JDK 21 y SDK configurado por `app/build.gradle.kts`).
-2. Agregar los valores de `local.properties.example` a tu `local.properties`, conservando `sdk.dir`. También se pueden usar variables de entorno del mismo nombre.
-3. Configurar el mismo proyecto Supabase que usan React y el backend. Solo incluir la clave **publishable**, nunca `service_role`, claves secretas o credenciales PostgreSQL.
+2. La URL y clave pública ya están en `config/supabase.public.json`, igual que en React y el backend. `local.properties` solo necesita el `sdk.dir` administrado por Android Studio. Debug usa `http://10.0.2.2:3001/api` para el emulador.
+3. Para otro proyecto, sobrescribir juntas `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` en `local.properties` o variables de entorno. Para un dispositivo físico/release configurar `API_BASE_URL` con HTTPS. Usar `local.properties.example` como referencia, conservando `sdk.dir`. Nunca incluir `service_role`, claves secretas o credenciales PostgreSQL.
 4. Iniciar Express con la migración Prisma aplicada. Emulador: `http://10.0.2.2:3001/api`. Dispositivo físico/release: URL HTTPS accesible. El cliente solo permite HTTP en debug hacia emulador/loopback.
 5. Registrar una cuenta nueva. Si Supabase exige confirmación de correo, abrir el enlace en el navegador y luego volver a ingresar. Configurar la Site URL de Auth con la web; no se implementan deep links en esta entrega.
 
@@ -15,6 +15,8 @@ Aplicación Java para jugadores de D&D. Esta rama reemplaza Firebase Auth/Firest
 ```
 
 Ya no se requieren Firebase ni `google-services.json`. Los usuarios/datos de prueba anteriores no se importan.
+
+Si aparece `package com.google.firebase.auth does not exist` en `CrearPersonajeActivity`, se está compilando una copia anterior o incompleta: la versión migrada importa `com.miapp.dndcompanion.network.ApiClient`. Actualizar la rama completa, sincronizar Gradle y reconstruir; no volver a agregar Firebase para ocultar el error. Conservar los cambios locales antes de cambiar de rama.
 
 ## Funciones integradas
 
