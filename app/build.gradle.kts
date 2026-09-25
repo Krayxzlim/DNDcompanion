@@ -1,4 +1,5 @@
 import java.util.Properties
+import groovy.json.JsonSlurper
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,7 +9,17 @@ val localConfig = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-fun config(name: String): String = (System.getenv(name) ?: localConfig.getProperty(name, ""))
+val publicConfig = JsonSlurper().parse(rootProject.file("config/supabase.public.json")) as Map<*, *>
+fun override(name: String): String? = (System.getenv(name) ?: localConfig.getProperty(name))?.takeIf { it.isNotBlank() }
+val overrideSupabase = override("SUPABASE_URL") != null || override("SUPABASE_PUBLISHABLE_KEY") != null
+require(!overrideSupabase || (override("SUPABASE_URL") != null && override("SUPABASE_PUBLISHABLE_KEY") != null)) {
+    "Configurá SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY juntas para cambiar de proyecto."
+}
+fun config(name: String): String = (override(name) ?: when (name) {
+    "SUPABASE_URL" -> publicConfig["url"].toString()
+    "SUPABASE_PUBLISHABLE_KEY" -> publicConfig["publishableKey"].toString()
+    else -> ""
+})
     .replace("\\", "\\\\").replace("\"", "\\\"")
 
 android {
@@ -28,13 +39,16 @@ android {
         versionName = "1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${config("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"${config("SUPABASE_PUBLISHABLE_KEY")}\"")
-        buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL").ifEmpty { "http://10.0.2.2:3001/api" }}\"")
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL")}\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

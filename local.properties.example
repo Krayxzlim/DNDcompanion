@@ -1,6 +1,6 @@
 # Do not commit local.properties. Only public Supabase keys belong in the app.
 # sdk.dir=/your/android/sdk
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_REPLACE_ME
+SUPABASE_URL=https://fecpedqshkgkbxxukbeg.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_TMaSqtbGJ7uHOVMyOkULqg_-5c7DXPT
 # Android emulator -> development computer. Use HTTPS for a real device/release.
 API_BASE_URL=http://10.0.2.2:3001/api
