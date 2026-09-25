@@ -21,8 +21,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.miapp.dndcompanion.network.ApiClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -74,14 +73,13 @@ public class CrearPersonajeActivity extends AppCompatActivity {
             "Legal Malvado","Neutral Malvado","Caótico Malvado"
     };
 
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    private ApiClient api;
+    private Button btnGuardar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mAuth = FirebaseAuth.getInstance();
-        db    = FirebaseFirestore.getInstance();
+        api = ApiClient.get(this);
         setContentView(buildLayout());
         cargarRazas();
     }
@@ -348,7 +346,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         // Botón guardar
         root.addView(separadorDorado());
 
-        Button btnGuardar = new Button(this);
+        btnGuardar = new Button(this);
         btnGuardar.setText("⚔  CREAR PERSONAJE");
         btnGuardar.setTextColor(color(R.color.dorado));
         btnGuardar.setTextSize(14);
@@ -434,7 +432,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         });
     }
 
-    // Guardar en Firestore y devolver resultado
+    // Guardar por la API compartida y devolver resultado
     private void guardarPersonaje() {
         String nombre = editNombre.getText().toString().trim();
         if (nombre.isEmpty()) {
@@ -450,13 +448,13 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         int nivel        = seekNivel.getProgress() + 1;
 
         Map<String, Object> doc = new HashMap<>();
-        doc.put("nombre", nombre);     doc.put("raza", raza);
-        doc.put("clase", clase);       doc.put("nivel", nivel);
-        doc.put("alineacion", alineacion);
-        doc.put("fue", atributos[0]);  doc.put("des", atributos[1]);
-        doc.put("con", atributos[2]);  doc.put("int_", atributos[3]);
-        doc.put("sab", atributos[4]);  doc.put("car", atributos[5]);
-        doc.put("creadoEn", com.google.firebase.Timestamp.now());
+        doc.put("name", nombre);     doc.put("race", raza);
+        doc.put("characterClass", clase);       doc.put("level", nivel);
+        doc.put("alignment", alineacion);
+        doc.put("strength", atributos[0]);  doc.put("dexterity", atributos[1]);
+        doc.put("constitution", atributos[2]);  doc.put("intelligence", atributos[3]);
+        doc.put("wisdom", atributos[4]);  doc.put("charisma", atributos[5]);
+
 
         // Intent resultado (siempre, con o sin sesión)
         Intent result = new Intent();
@@ -472,25 +470,25 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         result.putExtra("personaje_sab",  atributos[4]);
         result.putExtra("personaje_car",  atributos[5]);
 
-        if (mAuth.getCurrentUser() != null) {
-            String uid = mAuth.getCurrentUser().getUid();
-            db.collection("usuarios").document(uid)
-                    .collection("personajes").add(doc)
-                    .addOnSuccessListener(ref -> {
-                        Toast.makeText(this, "✦ ¡" + nombre + " creado!",
-                                Toast.LENGTH_LONG).show();
-                        setResult(RESULT_OK, result);
-                        finish();
-                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-                    })
-                    .addOnFailureListener(ex ->
-                            Toast.makeText(this, "Error: " + ex.getMessage(),
-                                    Toast.LENGTH_SHORT).show());
-        } else {
-            setResult(RESULT_OK, result);
-            finish();
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        }
+        btnGuardar.setEnabled(false);
+        api.request("POST", "/characters", new JSONObject(doc), new ApiClient.Callback() {
+            public void success(Object value) {
+                if (isFinishing()) return;
+                result.putExtra("personaje_id", ((JSONObject)value).optString("id"));
+                Toast.makeText(CrearPersonajeActivity.this, "Personaje guardado", Toast.LENGTH_SHORT).show();
+                setResult(RESULT_OK, result); finish();
+            }
+            public void failure(String message, int status) {
+                if (isFinishing()) return;
+                btnGuardar.setEnabled(true);
+                Toast.makeText(CrearPersonajeActivity.this, message, Toast.LENGTH_LONG).show();
+                if (status == 401) {
+                    Intent login = new Intent(CrearPersonajeActivity.this, LoginActivity.class);
+                    login.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(login); finish();
+                }
+            }
+        });
     }
 
     private void refrescarAtributo(int idx) {

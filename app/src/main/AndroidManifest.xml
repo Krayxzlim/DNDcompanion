@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -15,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DndCompanion">
 
-        <!-- LAUNCHER: Login con Firebase Auth -->
+        <!-- LAUNCHER: Login con Supabase Auth -->
         <activity
             android:name=".LoginActivity"
             android:exported="true">
@@ -62,7 +63,7 @@
         <!--
             Creador de personaje.
             Razas desde la Open5e API.
-            Guarda en Firestore y devuelve resultado vía setResult().
+            Guarda por API REST y devuelve resultado vía setResult().
         -->
         <activity
             android:name=".CrearPersonajeActivity"
