@@ -36,7 +36,7 @@ public class LoginActivity extends AppCompatActivity {
         api = ApiClient.get(this);
         setContentView(buildLayout());
         if (api.hasSession()) {
-            btnLogin.setEnabled(false); btnRegistrar.setEnabled(false);
+            btnLogin.setEnabled(false); btnRegistrar.setEnabled(false); btnRecuperar.setEnabled(false);
             loadProfile();
         }
     }
@@ -160,6 +160,11 @@ public class LoginActivity extends AppCompatActivity {
         });
         card.addView(btnRegistrar);
 
+        btnRecuperar = new Button(this);
+        btnRecuperar.setText("Olvidé mi contraseña");
+        btnRecuperar.setOnClickListener(v -> recuperarPassword());
+        card.addView(btnRecuperar);
+
         //Ensamblar
         root.addView(icono);
         root.addView(titulo);
@@ -172,6 +177,31 @@ public class LoginActivity extends AppCompatActivity {
 
     // autenticación
 
+    private Button btnRecuperar;
+
+    private void recuperarPassword() {
+        String email = editEmail.getText().toString().trim();
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            mostrarError("Ingresá un correo válido para recuperar la contraseña.");
+            return;
+        }
+        btnLogin.setEnabled(false);
+        btnRegistrar.setEnabled(false);
+        btnRecuperar.setEnabled(false);
+        txtError.setVisibility(View.GONE);
+        api.recoverPassword(email, new ApiClient.Callback() {
+            public void success(Object value) {
+                if (isFinishing()) return;
+                btnLogin.setEnabled(true); btnRegistrar.setEnabled(true); btnRecuperar.setEnabled(true);
+                new androidx.appcompat.app.AlertDialog.Builder(LoginActivity.this)
+                    .setTitle("Revisá tu correo")
+                    .setMessage("Si existe una cuenta con ese correo, recibirás un enlace para elegir una contraseña nueva. Revisá también spam. Después volvé a esta app e ingresá con la nueva contraseña.")
+                    .setPositiveButton("Entendido", null).show();
+            }
+            public void failure(String message, int status) { authFailure(message); }
+        });
+    }
+
     private void iniciarSesion() {
         String email = editEmail.getText().toString().trim();
         String pass  = editPassword.getText().toString();
@@ -183,6 +213,7 @@ public class LoginActivity extends AppCompatActivity {
 
         btnLogin.setEnabled(false);
         btnRegistrar.setEnabled(false);
+        btnRecuperar.setEnabled(false);
         txtError.setVisibility(View.GONE);
 
         api.login(email, pass, new ApiClient.Callback() {
@@ -195,7 +226,7 @@ public class LoginActivity extends AppCompatActivity {
         String email = editEmail.getText().toString().trim();
         String pass = editPassword.getText().toString();
         if (email.isEmpty() || pass.length() < 6) { mostrarError("Ingresá correo y contraseña de al menos 6 caracteres."); return; }
-        btnLogin.setEnabled(false); btnRegistrar.setEnabled(false);
+        btnLogin.setEnabled(false); btnRegistrar.setEnabled(false); btnRecuperar.setEnabled(false);
         api.register(email, pass, new ApiClient.Callback() {
             public void success(Object value) {
                 if (api.hasSession()) loadProfile();
@@ -213,7 +244,7 @@ public class LoginActivity extends AppCompatActivity {
     }
     private void authFailure(String message) {
         if (isFinishing()) return;
-        btnLogin.setEnabled(true); btnRegistrar.setEnabled(true); mostrarError(message);
+        btnLogin.setEnabled(true); btnRegistrar.setEnabled(true); btnRecuperar.setEnabled(true); mostrarError(message);
     }
 
     private void irAMain(String email) {

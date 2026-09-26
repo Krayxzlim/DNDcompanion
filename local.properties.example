@@ -4,3 +4,8 @@ SUPABASE_URL=https://fecpedqshkgkbxxukbeg.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_TMaSqtbGJ7uHOVMyOkULqg_-5c7DXPT
 # Android emulator -> development computer. Use HTTPS for a real device/release.
 API_BASE_URL=http://10.0.2.2:3001/api
+
+# Must be allowlisted in Supabase Auth > URL Configuration.
+# In development open the email on the computer running Vite.
+# On a real phone / release use the public HTTPS frontend URL.
+PASSWORD_RESET_URL=http://localhost:5173/?recovery=1
