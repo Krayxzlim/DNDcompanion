@@ -44,6 +44,20 @@ public final class ApiClient {
     public void login(String email, String password, Callback callback) {
         run(() -> { JSONObject data = (JSONObject) http(authUrl("/token?grant_type=password"), "POST", credentials(email, password), null, true); save(data); return data; }, callback);
     }
+    public void recoverPassword(String email, Callback callback) {
+        run(() -> {
+            String redirect = BuildConfig.PASSWORD_RESET_URL;
+            if (redirect.isEmpty()) throw new ApiError(400, "Configurá PASSWORD_RESET_URL con la dirección de recuperación de la web.");
+            URL target = new URL(redirect);
+            boolean local = "localhost".equals(target.getHost()) || "127.0.0.1".equals(target.getHost()) || "10.0.2.2".equals(target.getHost());
+            if (!"https".equals(target.getProtocol()) && !(BuildConfig.DEBUG && local && "http".equals(target.getProtocol()))) {
+                throw new ApiError(400, "La página de recuperación debe usar HTTPS.");
+            }
+            http(authUrl("/recover?redirect_to=" + java.net.URLEncoder.encode(redirect, "UTF-8")),
+                    "POST", new JSONObject().put("email", email.trim()), null, true);
+            return null;
+        }, callback);
+    }
     public void register(String email, String password, Callback callback) {
         run(() -> {
             JSONObject data = (JSONObject) http(authUrl("/signup"), "POST", credentials(email, password).put("data", new JSONObject().put("username", email.split("@")[0])), null, true);

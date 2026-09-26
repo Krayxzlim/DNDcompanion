@@ -45,9 +45,11 @@ android {
 
     buildTypes {
         debug {
+            buildConfigField("String", "PASSWORD_RESET_URL", "\"${config("PASSWORD_RESET_URL").ifEmpty { "http://localhost:5173/?recovery=1" }}\"")
             buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL").ifEmpty { "http://10.0.2.2:3001/api" }}\"")
         }
         release {
+            buildConfigField("String", "PASSWORD_RESET_URL", "\"${config("PASSWORD_RESET_URL")}\"")
             buildConfigField("String", "API_BASE_URL", "\"${config("API_BASE_URL")}\"")
             isMinifyEnabled = false
             proguardFiles(
