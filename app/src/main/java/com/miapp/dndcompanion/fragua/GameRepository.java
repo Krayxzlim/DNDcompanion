@@ -100,7 +100,7 @@ public final class GameRepository {
           }
 
           public void failure(String message, int status) {
-            if (owner.equals(account())) callback.error(message, status);
+            if (owner.equals(account()) || status == 401) callback.error(message, status);
           }
         });
   }

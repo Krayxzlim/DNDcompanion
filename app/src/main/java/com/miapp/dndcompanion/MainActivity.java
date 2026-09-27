@@ -99,7 +99,8 @@ public class MainActivity extends AppCompatActivity {
         .observe(
             this,
             s -> {
-              status.setText(s.message + (s.busy ? "" : ""));
+              if(!repo.hasSession()){login();return;}
+              status.setText(s.message);
               render();
             });
     vm.load();

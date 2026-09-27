@@ -62,6 +62,7 @@ public final class GameViewModel extends ViewModel {
   }
 
   public void select(String id) {
+    if(current().busy){message("Esperá a que termine la operación actual.");return;}
     selected = id;
     repo.select(id);
     current().sheet = null;
@@ -124,14 +125,13 @@ public final class GameViewModel extends ViewModel {
               .put("type", type)
               .put("data", data);
       repo.pending(selected, e);
-      send(e);
+      send(selected, e);
     } catch (Exception e) {
       message("No se pudo preparar la operación.");
     }
   }
 
-  private void send(JSONObject e) {
-    String id = selected;
+  private void send(String id, JSONObject e) {
     current().busy = true;
     message("Guardando…");
     repo.remote(
@@ -148,18 +148,19 @@ public final class GameViewModel extends ViewModel {
                 () -> {
                   if (id.equals(selected)) {
                     current().busy = false;
-                    current().sheet = next;
+                    current().online=true;
+                    if(current().sheet==null||next.optInt("stateVersion")>=current().sheet.optInt("stateVersion"))current().sheet = next;
                     JSONObject result = output.optJSONObject("result");
                     message(
                         result != null && result.length() > 0
-                            ? "Resultado: " + result.toString()
+                            ? result.has("total") ? "Tirada: " + result.optJSONArray("dice") + " → " + result.optInt("total") : result.has("healing") ? "PV recuperados: " + result.optInt("healing") : result.has("concentrationSaveDc") ? "Concentración: salvación de CON CD " + result.optInt("concentrationSaveDc") : result.optString("spell",result.optString("reminder","Guardado"))
                             : "Guardado");
                   }
                 });
           }
 
           public void error(String m, int status) {
-            if (status >= 400 && status < 500) repo.clearPending(id);
+            if (status >= 400 && status < 500 && status != 408 && status != 429) repo.clearPending(id);
             if (id.equals(selected)) {
               current().busy = false;
               if (status == 0 || status >= 500) current().online = false;
@@ -171,26 +172,30 @@ public final class GameViewModel extends ViewModel {
   }
 
   public void reconcile() {
+    if(current().busy)return;
     JSONObject pending = repo.pending(selected);
     if (pending == null) {
       loadSheet();
       return;
     }
     String id = selected;
+    current().busy=true;message("Comprobando operación…");
     repo.remote(
         "GET",
         "/characters/" + id + "/commands/" + pending.optString("commandId"),
         null,
         new GameRepository.Result() {
           public void ok(Object v, boolean c, long t) {
+            current().busy=false;
             repo.clearPending(id);
             loadSheet();
             message("Operación confirmada; no se repitió.");
           }
 
           public void error(String m, int status) {
-            if (status == 404) {
-              send(pending);
+            current().busy=false;
+            if (status == 404 && id.equals(selected)) {
+              send(id, pending);
             } else message(m);
           }
         });
