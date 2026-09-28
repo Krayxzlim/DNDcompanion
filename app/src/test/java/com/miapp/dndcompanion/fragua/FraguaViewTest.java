@@ -34,13 +34,13 @@ public class FraguaViewTest {
     List<String> routes = new ArrayList<>();
     HomeScreen home =
         new HomeScreen(activity, sheet, false, (destination, item) -> routes.add(destination));
-    for (String label :
-        new String[] {"Aster", "♧\nInventario", "▤\nNotas", "♢\nSalvaciones", "✧\nHabilidades"}) {
+    assertTrue(((ViewGroup) home.getChildAt(0)).getChildAt(0).performClick());
+    for (String label : new String[] {"Aster", "▤\nNotas", "♢\nSalvaciones", "✧\nHabilidades"}) {
       TextView button = find(home, label);
       assertNotNull(label, button);
       assertTrue(button.performClick());
     }
-    assertEquals(Arrays.asList("sheet", "inventory", "notes", "saves", "skills"), routes);
+    assertEquals(Arrays.asList("inventory", "sheet", "notes", "saves", "skills"), routes);
     assertEquals(before, sheet.toString());
     LinearLayout root = new LinearLayout(activity);
     root.setOrientation(LinearLayout.VERTICAL);

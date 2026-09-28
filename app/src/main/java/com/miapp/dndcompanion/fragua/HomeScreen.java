@@ -23,9 +23,13 @@ public final class HomeScreen extends LinearLayout {
     JSONObject id = sheet.optJSONObject("identity"),
         hp = sheet.optJSONObject("state").optJSONObject("hp");
     LinearLayout identity = row(context);
-    identity.addView(
-        button(context, "♧\nInventario", () -> navigate("inventory")),
-        new LinearLayout.LayoutParams(px(72), px(68)));
+    ImageButton inventory = new ImageButton(context);
+    inventory.setImageResource(com.miapp.dndcompanion.R.drawable.ic_inventory);
+    inventory.setContentDescription("Inventario");
+    inventory.setBackground(new FraguaUi.Frame());
+    inventory.setPadding(px(10), px(10), px(10), px(10));
+    inventory.setOnClickListener(v -> navigate("inventory"));
+    identity.addView(inventory, new LinearLayout.LayoutParams(px(52), px(60)));
     TextView name =
         button(
             context,

@@ -119,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
               status.setText(s.message);
               render();
             });
-    vm.load();
     if (vm.noteDraft != null) {
       JSONObject draft = vm.noteDraft;
       noteEditor(

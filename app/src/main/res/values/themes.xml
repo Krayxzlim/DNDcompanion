@@ -2,7 +2,7 @@
 <resources>
 
     <!-- Tema principal de la app -->
-    <style name="Theme.DndCompanion" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.DndCompanion" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/dorado</item>
         <item name="colorPrimaryVariant">@color/dorado_borde</item>
         <item name="colorOnPrimary">@color/fondo</item>
