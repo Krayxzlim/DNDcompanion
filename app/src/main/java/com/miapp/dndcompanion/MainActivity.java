@@ -94,12 +94,28 @@ public class MainActivity extends AppCompatActivity {
     vm = new ViewModelProvider(this, GameViewModel.factory(repo)).get(GameViewModel.class);
     if (saved != null) vm.screen = saved.getString("screen", "home");
     else if (getIntent().hasExtra("screen")) vm.screen = getIntent().getStringExtra("screen");
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new androidx.activity.OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                if (vm != null && !vm.screen.equals("home")) go("home");
+                else {
+                  setEnabled(false);
+                  getOnBackPressedDispatcher().onBackPressed();
+                }
+              }
+            });
     shell();
     vm.state()
         .observe(
             this,
             s -> {
-              if(!repo.hasSession()){login();return;}
+              if (!repo.hasSession()) {
+                login();
+                return;
+              }
               status.setText(s.message);
               render();
             });
@@ -213,12 +229,6 @@ public class MainActivity extends AppCompatActivity {
     render();
   }
 
-  @Override
-  public void onBackPressed() {
-    if (vm != null && !vm.screen.equals("home")) go("home");
-    else super.onBackPressed();
-  }
-
   private void chooseCharacter() {
     JSONArray a = vm.current().characters;
     String[] names = new String[a.length()];
@@ -293,132 +303,38 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void home() {
-    JSONObject id = sheet().optJSONObject("identity"), hp = state().optJSONObject("hp");
-    LinearLayout identity = row(this);
-    identity.addView(
-        button(this, "♧\nInventario", () -> go("inventory")),
-        new LinearLayout.LayoutParams(px(72), px(68)));
-    TextView name =
-        button(
+    body.addView(
+        new HomeScreen(
             this,
-            id.optString("name") + "\n" + id.optString("race") + " · Nivel " + id.optInt("level"),
-            () -> go("sheet"));
-    name.setTextSize(19);
-    identity.addView(name, new LinearLayout.LayoutParams(0, px(86), 1));
-    identity.addView(
-        button(this, "▤\nNotas", () -> go("notes")), new LinearLayout.LayoutParams(px(60), px(68)));
-    body.addView(identity);
-    LinearLayout hero = row(this);
-    TextView ac =
-        text(this, "♢\nCA\n" + (derived().isNull("ac") ? "—" : derived().optInt("ac")), 20, GOLD);
-    ac.setGravity(Gravity.CENTER);
-    hero.addView(ac, new LinearLayout.LayoutParams(0, px(100), 1));
-    HealthPortrait portrait =
-        new HealthPortrait(this, hp.optInt("current"), hp.optInt("max"), hp.optInt("temp"));
-    portrait.setOnClickListener(v -> hpDialog());
-    hero.addView(portrait, new LinearLayout.LayoutParams(px(210), px(232)));
-    TextView speed = text(this, "➤\n" + derived().optInt("speed") + " ft\nVelocidad", 14, INK);
-    speed.setGravity(Gravity.CENTER);
-    hero.addView(speed, new LinearLayout.LayoutParams(0, px(100), 1));
-    body.addView(hero);
-    TextView temp =
-        text(
-            this,
-            "PV temporales: "
-                + hp.optInt("temp")
-                + "  ·  "
-                + (vm.current().online ? "Ficha sincronizada" : "Copia local · solo consulta"),
-            12,
-            MUTED);
-    temp.setGravity(Gravity.CENTER);
-    body.addView(temp);
-    JSONObject xp = derived().optJSONObject("xp");
-    LinearLayout progress = panel(this);
-    progress.addView(
-        text(
-            this,
-            "NIVEL "
-                + id.optInt("level")
-                + "                  "
-                + xp.optInt("current")
-                + " / "
-                + (xp.isNull("next") ? "MÁX" : xp.optInt("next"))
-                + " XP",
-            13,
-            INK));
-    ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-    bar.setMax(1000);
-    int start = xp.optInt("start"), end = xp.optInt("next", start + 1);
-    bar.setProgress(
-        Math.max(
-            0, Math.min(1000, (xp.optInt("current") - start) * 1000 / Math.max(1, end - start))));
-    bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF8876EF));
-    progress.addView(bar);
-    body.addView(progress);
-    JSONArray companions = array(state(), "companions");
-    for (int i = 0; i < companions.length(); i++) {
-      JSONObject c = companions.optJSONObject(i);
-      if (c.optBoolean("active")) {
-        body.addView(
-            button(
-                this,
-                "♧  " + c.optString("name") + " · Compañero / familiar  ›",
-                () -> go("companions")));
-        break;
-      }
-    }
-    if (!state().optBoolean("configured"))
-      body.addView(button(this, "Completar la ficha para jugar", this::configure));
-    RadialMenu radial =
-        new RadialMenu(
-            this,
-            new String[] {
-              "♢\nSalvaciones", "✧\nHabilidades", "▱\nHechizos", "▤\nMisiones", "⚔\nAcciones"
-            },
-            i -> {
-              switch (i) {
-                case 0:
+            sheet(),
+            vm.current().online,
+            (destination, item) -> {
+              switch (destination) {
+                case "configure":
+                  configure();
+                  break;
+                case "dice":
+                  dice();
+                  break;
+                case "rest":
+                  restMenu();
+                  break;
+                case "hp":
+                  hpDialog();
+                  break;
+                case "saves":
                   checks(false);
                   break;
-                case 1:
+                case "skills":
                   checks(true);
                   break;
-                case 2:
-                  go("spells");
+                case "attack":
+                  roll("attack", item.optString("id"), item.optString("name"));
                   break;
-                case 3:
-                  go("missions");
-                  break;
-                case 4:
-                  go("actions");
-                  break;
+                default:
+                  go(destination);
               }
-            });
-    radial.center("◇\nDados", this::dice);
-    body.addView(radial, new LinearLayout.LayoutParams(-1, -2));
-    LinearLayout rest = panel(this);
-    rest.addView(button(this, "♨  DESCANSAR", this::restMenu));
-    body.addView(rest);
-    JSONArray attacks = array(derived(), "attacks");
-    for (int i = 0; i < Math.min(2, attacks.length()); i++) {
-      JSONObject a = attacks.optJSONObject(i);
-      LinearLayout card = panel(this);
-      card.addView(text(this, "⚔  " + a.optString("name"), 21, GOLD));
-      card.addView(
-          text(
-              this,
-              "d20 " + signed(a.optInt("attack")) + "  ·  Daño " + a.optString("damage"),
-              16,
-              INK));
-      card.addView(
-          button(this, "Atacar", () -> roll("attack", a.optString("id"), a.optString("name"))));
-      body.addView(card);
-    }
-    body.addView(button(this, "▤  Misiones · activas y disponibles  ›", () -> go("missions")));
-    body.addView(button(this, "Compañeros y familiares  ›", () -> go("companions")));
-    TextView f = text(this, "FRAGUA  ·  SRD 2024  ·  Asistente de mesa", 11, MUTED);
-    f.setGravity(Gravity.CENTER);
-    body.addView(f);
+            }));
   }
 
   private void heading(String text) {
@@ -457,6 +373,20 @@ public class MainActivity extends AppCompatActivity {
     body.addView(button(this, "Gestionar vida", this::hpDialog));
     body.addView(button(this, "Condiciones y concentración", this::conditions));
     body.addView(button(this, "Reducciones temporales", this::reductions));
+    JSONArray traits = array(derived(), "classFeatures");
+    for (int i = 0; i < traits.length(); i++) {
+      JSONObject trait = traits.optJSONObject(i);
+      body.addView(
+          button(
+              this,
+              trait.optString("name"),
+              () -> {
+                LinearLayout f = column(this);
+                f.addView(text(this, trait.optString("description"), 16, INK));
+                f.addView(text(this, trait.optString("source"), 12, MUTED));
+                dialog(trait.optString("name"), f).show();
+              }));
+    }
     body.addView(
         button(
             this, "Salvaciones contra muerte", () -> roll("death", "", "Salvación contra muerte")));
@@ -711,7 +641,7 @@ public class MainActivity extends AppCompatActivity {
             this,
             longRest
                 ? "Recupera PV, dados de golpe y recursos según su recuperación. Confirmá el tiempo"
-                      + " del mundo con el DM."
+                    + " del mundo con el DM."
                 : "Requiere una hora sin interrupción. Luego podés gastar dados de golpe de a uno.",
             16,
             INK));
@@ -887,6 +817,8 @@ public class MainActivity extends AppCompatActivity {
             14,
             MUTED));
     ArrayList<EditText> classLevels = new ArrayList<>();
+    ArrayList<Spinner> subclasses = new ArrayList<>();
+    JSONObject subclassOptions = derived().optJSONObject("subclassOptions");
     for (int i = 0; i < classKeys.length; i++) {
       int level = 0;
       JSONArray existing = array(s, "classes");
@@ -894,6 +826,20 @@ public class MainActivity extends AppCompatActivity {
         if (existing.optJSONObject(j).optString("key").equals(classKeys[i]))
           level = existing.optJSONObject(j).optInt("level");
       classLevels.add(field(form, classLabels[i], String.valueOf(level), true));
+      JSONArray choices =
+          subclassOptions == null ? new JSONArray() : array(subclassOptions, classKeys[i]);
+      String[] labels = new String[choices.length() + 1];
+      labels[0] = "Sin elección de subclase";
+      int selectedSubclass = 0;
+      for (int j = 0; j < choices.length(); j++) {
+        labels[j + 1] = choices.optJSONObject(j).optString("name");
+        for (int k = 0; k < existing.length(); k++)
+          if (choices
+              .optJSONObject(j)
+              .optString("key")
+              .equals(existing.optJSONObject(k).optString("subclass"))) selectedSubclass = j + 1;
+      }
+      subclasses.add(options(form, "Subclase SRD (desde nivel 3)", labels, selectedSubclass));
     }
 
     final JSONObject skills = new JSONObject();
@@ -946,7 +892,21 @@ public class MainActivity extends AppCompatActivity {
                       for (int j = 0; j < classKeys.length; j++) {
                         int lvl = number(classLevels.get(j));
                         if (lvl < 0) throw new IllegalArgumentException();
-                        if (lvl > 0) selectedClasses.put(obj("key", classKeys[j], "level", lvl));
+                        if (lvl > 0) {
+                          JSONObject cl = obj("key", classKeys[j], "level", lvl);
+                          int choice = subclasses.get(j).getSelectedItemPosition();
+                          if (choice > 0)
+                            try {
+                              cl.put(
+                                  "subclass",
+                                  array(subclassOptions, classKeys[j])
+                                      .optJSONObject(choice - 1)
+                                      .optString("key"));
+                            } catch (JSONException e) {
+                              throw new IllegalArgumentException(e);
+                            }
+                          selectedClasses.put(cl);
+                        }
                       }
                       JSONArray saveKeys = new JSONArray();
                       for (int i = 0; i < saves.size(); i++)
@@ -1259,8 +1219,42 @@ public class MainActivity extends AppCompatActivity {
     d.show();
   }
 
+  private void arcaneRecovery() {
+    LinearLayout f = column(this);
+    f.addView(
+        text(
+            this,
+            "Una vez por descanso largo, al finalizar uno corto. Indicá los niveles de espacios"
+                + " gastados a recuperar (ejemplo: 1,1 o 2). Ninguno puede superar nivel 5.",
+            16,
+            INK));
+    EditText slots = field(f, "Niveles separados por coma", "1", false);
+    AlertDialog d = dialog("Recuperación arcana", f);
+    f.addView(
+        button(
+            this,
+            "Recuperar",
+            () ->
+                attempt(
+                    () -> {
+                      JSONArray levels = new JSONArray();
+                      for (String n : slots.getText().toString().split(","))
+                        levels.put(Integer.parseInt(n.trim()));
+                      vm.command("arcaneRecovery", obj("slots", levels));
+                      d.dismiss();
+                    })));
+    d.show();
+  }
+
   private void spells() {
     heading("Hechizos");
+    JSONObject recovery = derived().optJSONObject("arcaneRecovery");
+    if (recovery != null && recovery.optInt("limit") > 0)
+      body.addView(
+          button(
+              this,
+              "Recuperación arcana · hasta " + recovery.optInt("limit") + " niveles",
+              this::arcaneRecovery));
     JSONArray casting = array(derived(), "spellcasting");
     for (int i = 0; i < casting.length(); i++) {
       JSONObject x = casting.optJSONObject(i);
@@ -1451,6 +1445,7 @@ public class MainActivity extends AppCompatActivity {
             "Origen de clase",
             classLabels,
             Arrays.asList(classKeys).indexOf(x.optString("origin", "wizard")));
+    CheckBox inBook = check(f, "Está en mi libro de conjuros de mago", x.optBoolean("inSpellbook"));
     CheckBox prepared = check(f, "Preparado / disponible", x.optBoolean("prepared", true)),
         concentration = check(f, "Concentración", x.optBoolean("concentration")),
         ritual = check(f, "Ritual", x.optBoolean("ritual"));
@@ -1485,6 +1480,8 @@ public class MainActivity extends AppCompatActivity {
                                   range.getText().toString(),
                                   "description",
                                   desc.getText().toString(),
+                                  "inSpellbook",
+                                  inBook.isChecked(),
                                   "prepared",
                                   prepared.isChecked(),
                                   "concentration",
@@ -1543,7 +1540,14 @@ public class MainActivity extends AppCompatActivity {
                               "classes",
                               array(s, "classes"),
                               "hp",
-                              s.optJSONObject("hp"),
+                              obj(
+                                  "current",
+                                  s.optJSONObject("hp").optInt("current"),
+                                  "max",
+                                  s.optJSONObject("hp")
+                                      .optInt("baseMax", s.optJSONObject("hp").optInt("max")),
+                                  "temp",
+                                  s.optJSONObject("hp").optInt("temp")),
                               "xp",
                               s.optInt("xp"),
                               "speed",
@@ -1885,7 +1889,7 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout content = column(this);
     body.addView(content);
     repo.read(
-        "/notebooks",
+        "/notebooks?page=" + vm.notePage,
         new GameRepository.Result() {
           public void ok(Object data, boolean cached, long at) {
             content.removeAllViews();
@@ -1922,7 +1926,7 @@ public class MainActivity extends AppCompatActivity {
                       button(
                           MainActivity.this,
                           note.optString("title") + "  ›",
-                          () -> noteEditor(note, sections, !cached)));
+                          () -> openNote(note.optString("id"), sections)));
               }
               TextView newNote =
                   button(
@@ -1958,7 +1962,25 @@ public class MainActivity extends AppCompatActivity {
                       MUTED));
             if (book.optBoolean("hasMore"))
               content.addView(
-                  text(MainActivity.this, "Se muestran las 200 notas más recientes.", 14, MUTED));
+                  text(MainActivity.this, "Hay más notas en la página siguiente.", 14, MUTED));
+            if (vm.notePage > 1)
+              content.addView(
+                  button(
+                      MainActivity.this,
+                      "Notas anteriores",
+                      () -> {
+                        vm.notePage--;
+                        go("notes");
+                      }));
+            if (book.optBoolean("hasMore"))
+              content.addView(
+                  button(
+                      MainActivity.this,
+                      "Más notas",
+                      () -> {
+                        vm.notePage++;
+                        go("notes");
+                      }));
           }
 
           public void error(String m, int code) {
@@ -2011,9 +2033,29 @@ public class MainActivity extends AppCompatActivity {
     d.show();
   }
 
+  private void openNote(String id, JSONArray sections) {
+    final AlertDialog[] opened = {null};
+    repo.read(
+        "/notebooks/notes/" + id,
+        new GameRepository.Result() {
+          public void ok(Object data, boolean cached, long at) {
+            if (opened[0] != null) {
+              if (!opened[0].isShowing()) return;
+              opened[0].dismiss();
+            }
+            opened[0] = noteEditor((JSONObject) data, sections, !cached);
+          }
+
+          public void error(String m, int code) {
+            Toast.makeText(MainActivity.this, m + " · copia local solo consulta", Toast.LENGTH_LONG)
+                .show();
+          }
+        });
+  }
+
   private Runnable captureNote;
 
-  private void noteEditor(JSONObject note, JSONArray sections, boolean editable) {
+  private AlertDialog noteEditor(JSONObject note, JSONArray sections, boolean editable) {
     LinearLayout f = column(this);
     EditText title = field(f, "Título", note.optString("title"), false);
     String[] labels = new String[sections.length()];
@@ -2134,5 +2176,6 @@ public class MainActivity extends AppCompatActivity {
           if (!isChangingConfigurations()) vm.noteDraft = null;
         });
     d.show();
+    return d;
   }
 }

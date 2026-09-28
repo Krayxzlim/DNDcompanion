@@ -35,7 +35,7 @@ public final class RadialMenu extends FrameLayout {
   protected void onMeasure(int w, int h) {
     int size = MeasureSpec.getSize(w);
     setMeasuredDimension(size, size);
-    int cell = (int) (size * (labels.length > 6 ? .22f : .30f));
+    int cell = (int) (size * (labels.length > 6 ? .22f : labels.length == 6 ? .27f : .30f));
     for (TextView b : buttons)
       b.measure(
           MeasureSpec.makeMeasureSpec(cell, MeasureSpec.EXACTLY),
