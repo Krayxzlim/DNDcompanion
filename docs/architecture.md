@@ -15,3 +15,16 @@ Android usa `GameRepository` para transporte y caché Room por cuenta, `GameView
 Costes aceptados: los formularios y algunos flujos auxiliares todavía viven en MainActivity; JSON validado sustituye por ahora a DTO Java específicos. Las operaciones guardan una instantánea por comando para asegurar respuestas reproducibles, por lo que se limita el tamaño del estado. No se ha agregado una cola de sincronización de escrituras ni un motor de turnos.
 
 La migración agrega columnas y tablas sin eliminar datos anteriores. Los clientes viejos siguen usando los campos básicos; si los modifican, se invalida la configuración de juego sin borrar inventario, conjuros o compañeros. Prisma sigue siendo la única autoridad de migraciones. Las nuevas tablas tienen RLS y no otorgan acceso directo a `anon` ni `authenticated`.
+
+
+## ADR 0003 — Layouts nativos de Fragua
+
+Se conserva Java Views y se mueve la composición estable a XML. Alternativas:
+continuar construyendo todos los controles en MainActivity, o separar layouts
+inflados y componentes de presentación. Se elige la segunda: permite editar
+proporciones y recursos en Android Studio, sin duplicar reglas ni reemplazar la
+navegación. HomeScreen recibe una ficha y callbacks; SpellsScreen encapsula la
+búsqueda y el plegado de niveles. MainActivity conserva los flujos de negocio.
+RadialMenu concentra geometría, dibujo y resolución táctil del sector; sus hijos
+siguen ofreciendo los clics accesibles. Los snapshots de Robolectric renderizan
+estos mismos layouts con datos de prueba, sin afirmar una sesión real conectada.

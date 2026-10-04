@@ -153,22 +153,57 @@ public final class RadialMenu extends FrameLayout {
     c.drawCircle(h, h, r, paint);
     paint.setShader(null);
     if (home) {
-      float[] starts = {180, 270, 0, 60, 120};
-      float[] sweeps = {90, 90, 60, 60, 60};
-      RectF outer = new RectF(h - r + 13, h - r + 13, h + r - 13, h + r - 13);
-      RectF inner = new RectF(h - h * .28f, h - h * .28f, h + h * .28f, h + h * .28f);
-      for (int i = 0; i < 5; i++) {
+      // Reference silhouette: clipped upper panels, diagonal lower panels and mission fan.
+      float[][] outlines = {
+        {
+          .08f, .45f, .14f, .25f, .25f, .10f, .44f, .10f, .48f, .16f, .48f, .41f, .41f, .48f, .12f,
+          .48f
+        },
+        {
+          .92f, .45f, .86f, .25f, .75f, .10f, .56f, .10f, .52f, .16f, .52f, .41f, .59f, .48f, .88f,
+          .48f
+        },
+        {.90f, .52f, .61f, .52f, .53f, .59f, .71f, .85f, .81f, .83f, .91f, .66f},
+        {.50f, .66f, .73f, .89f, .65f, .96f, .35f, .96f, .27f, .89f},
+        {.10f, .52f, .39f, .52f, .47f, .59f, .29f, .85f, .19f, .83f, .09f, .66f}
+      };
+      for (int i = 0; i < outlines.length; i++) {
         Path sector = new Path();
-        sector.arcTo(outer, starts[i] + 2, sweeps[i] - 4);
-        sector.arcTo(inner, starts[i] + sweeps[i] - 2, -sweeps[i] + 4);
+        float[] points = outlines[i];
+        sector.moveTo(points[0] * getWidth(), points[1] * getWidth());
+        for (int j = 2; j < points.length; j += 2)
+          sector.lineTo(points[j] * getWidth(), points[j + 1] * getWidth());
         sector.close();
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(pressed == i ? 0xA06E5127 : 0xBB041820);
+        paint.setColor(pressed == i ? 0xB06E5127 : 0xA0031720);
         c.drawPath(sector, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(FraguaUi.dp(getContext(), 1));
         paint.setColor(FraguaUi.GOLD);
         c.drawPath(sector, paint);
+        c.save();
+        c.scale(.96f, .96f, h, h);
+        paint.setColor(0x806F512B);
+        c.drawPath(sector, paint);
+        c.restore();
+      }
+      for (int i = 0; i < 4; i++) {
+        c.save();
+        c.rotate(i * 90, h, h);
+        Path star = new Path();
+        star.moveTo(h, 0);
+        star.lineTo(h + 4, 11);
+        star.lineTo(h + 12, 16);
+        star.lineTo(h + 4, 20);
+        star.lineTo(h, 30);
+        star.lineTo(h - 4, 20);
+        star.lineTo(h - 12, 16);
+        star.lineTo(h - 4, 11);
+        star.close();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(FraguaUi.GOLD);
+        c.drawPath(star, paint);
+        c.restore();
       }
     }
     paint.setColor(FraguaUi.GOLD);
