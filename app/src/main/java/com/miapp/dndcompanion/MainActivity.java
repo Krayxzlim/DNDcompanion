@@ -22,6 +22,19 @@ public class MainActivity extends AppCompatActivity {
   private GameViewModel vm;
   private LinearLayout body;
   private TextView status, title;
+  private final androidx.activity.result.ActivityResultLauncher<Intent> createCharacter =
+      registerForActivityResult(
+          new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+          result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null && vm != null) {
+              String id = result.getData().getStringExtra("personaje_id");
+              if (id != null && !id.isEmpty()) {
+                vm.screen = "home";
+                vm.select(id);
+                vm.load();
+              }
+            }
+          });
   private final String[] classKeys = {
     "barbarian",
     "bard",
@@ -185,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
                   chooseCharacter();
                   break;
                 case 2:
-                  startActivity(new Intent(this, CrearPersonajeActivity.class));
+                  createCharacter.launch(new Intent(this, CrearPersonajeActivity.class));
                   break;
                 case 3:
                   go("inventory");
@@ -257,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
           button(
               this,
               "Crear personaje",
-              () -> startActivity(new Intent(this, CrearPersonajeActivity.class))));
+              () -> createCharacter.launch(new Intent(this, CrearPersonajeActivity.class))));
       body.addView(p);
       return;
     }

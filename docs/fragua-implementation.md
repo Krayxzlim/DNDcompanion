@@ -81,3 +81,23 @@ se conservan fondo/avatar existentes y se incorporan iconos vectoriales propios.
 La composición se aproxima a las referencias; no se declara identidad pixel a
 pixel. El diseño sigue desplazándose verticalmente y admite textos largos.
 Esta revisión visual no corrige por sí sola los errores de validación del backend.
+
+## Corrección del alta y diagnóstico — 2026-10-04
+
+- Crear personaje permite reintentar el catálogo y mantiene visible el error. El botón espera a que haya especies disponibles; evita envíos simultáneos.
+- MainActivity recibe el resultado del alta y selecciona el ID creado, aunque hubiera otro personaje seleccionado.
+- Los errores 400 muestran los campos informados por el backend. El nombre admite hasta 160 caracteres; los modificadores negativos impares usan redondeo hacia abajo.
+- El alta guarda identidad/atributos. El formulario informa que aún deben completarse PV, competencias y recursos; no es todavía un asistente completo de creación por trasfondo, equipo y elecciones de clase.
+- El esquema remoto observado no tiene la migración `20260927030000_fragua_gameplay`. Su aplicación está pendiente de autorización; cambiar layouts no resuelve ese bloqueo.
+
+Para el emulador: backend actualizado en puerto 3001 y `API_BASE_URL=http://10.0.2.2:3001/api` (valor debug por defecto). Verificar primero `http://localhost:3001/api/ready` en la computadora del backend. Después de cambiar `local.properties`, recompilar la app. No agregar contraseña PostgreSQL al móvil.
+
+La compilación local de esta revisión quedó bloqueada antes de compilar fuentes por `NoClassDefFoundError: org/jetbrains/kotlin/buildtools/api/CompilationService` en la distribución Gradle disponible. La validación de Android se delega al workflow de la rama; consultar su resultado antes de dar esta revisión por compilada.
+
+### Estado final de esta revisión
+
+Las correcciones están guardadas en commits locales. La publicación en GitHub también fue rechazada por la revisión automática de aprobación: requiere autorización explícita para los repositorios `Krayxzlim/DNDcompanion` y `Krayxzlim/dnd-campaign-hub-backend`. No se ejecutó CI de esta revisión. La migración remota continúa pendiente por el mismo requisito de autorización para modificar Supabase. Las 27 pruebas backend volvieron a pasar tras reconciliar las ramas.
+
+### Actualización autorizada — 2026-10-04
+
+Con autorización explícita del usuario, se aplicó la migración `20260927030000_fragua_gameplay` a Supabase `fecpedqshkgkbxxukbeg` y se registró su checksum en el historial Prisma. Se verificaron las dos columnas nuevas, las tres tablas y RLS. Esto resuelve el bloqueo de esquema señalado arriba; el backend que corre en la computadora del usuario debe actualizarse y reiniciarse. No se modificaron contraseñas ni se borraron personajes.

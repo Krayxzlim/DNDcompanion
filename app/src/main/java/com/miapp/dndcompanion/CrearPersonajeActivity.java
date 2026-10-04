@@ -67,7 +67,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   };
 
   private ApiClient api;
-  private Button btnGuardar;
+  private Button btnGuardar, btnReintentar;
+  private boolean saving;
+  private TextView catalogStatus;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -142,6 +144,8 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     root.addView(labelSeccion("✦  NOMBRE DEL PERSONAJE", null));
     editNombre = new EditText(this);
     editNombre.setHint("Ej: Arannis, Grog, Mercer...");
+    editNombre.setFilters(
+        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(160)});
     editNombre.setHintTextColor(color(R.color.texto_secundario));
     editNombre.setTextColor(color(R.color.texto));
     editNombre.setTextSize(16);
@@ -165,6 +169,15 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     spLp.setMargins(dp(12), 0, dp(12), dp(6));
     spinnerRaza.setLayoutParams(spLp);
     root.addView(spinnerRaza);
+    catalogStatus = new TextView(this);
+    catalogStatus.setTextColor(color(R.color.texto));
+    catalogStatus.setPadding(dp(12), dp(8), dp(12), dp(8));
+    root.addView(catalogStatus);
+    btnReintentar = new Button(this);
+    btnReintentar.setText("Reintentar carga de especies");
+    btnReintentar.setVisibility(View.GONE);
+    btnReintentar.setOnClickListener(v -> cargarRazas());
+    root.addView(btnReintentar);
 
     txtRazaInfo = new TextView(this);
     txtRazaInfo.setTextColor(color(R.color.dorado_claro));
@@ -378,21 +391,36 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     btnGuardar.setOnClickListener(
         v -> {
           v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.btn_press));
-          new Handler(Looper.getMainLooper()).postDelayed(this::guardarPersonaje, 150);
+          guardarPersonaje();
         });
     root.addView(btnGuardar);
+    TextView nextStep = new TextView(this);
+    nextStep.setText(
+        "Después de crear, completá los PV, competencias y recursos desde Completar ficha.");
+    nextStep.setTextColor(color(R.color.texto_secundario));
+    nextStep.setPadding(dp(12), dp(12), dp(12), 0);
+    root.addView(nextStep);
 
     return scroll;
   }
 
   // Cargar razas desde Open5e
   private void cargarRazas() {
+    catalogStatus.setText("Cargando especies…");
+    btnReintentar.setVisibility(View.GONE);
+    btnGuardar.setEnabled(false);
     com.miapp.dndcompanion.fragua.GameRepository.get(this)
         .read(
             "/catalog/species",
             new com.miapp.dndcompanion.fragua.GameRepository.Result() {
               public void ok(Object data, boolean cached, long at) {
-                JSONArray results = ((JSONObject) data).optJSONArray("results");
+                if (isFinishing() || isDestroyed()) return;
+                JSONArray results =
+                    data instanceof JSONObject ? ((JSONObject) data).optJSONArray("results") : null;
+                if (results == null || results.length() == 0) {
+                  error("El catálogo de especies está vacío o no es válido.", 502);
+                  return;
+                }
                 razasNombres.clear();
                 razasInfo.clear();
                 for (int i = 0; i < results.length(); i++) {
@@ -406,6 +434,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                         android.R.layout.simple_spinner_dropdown_item,
                         razasNombres);
                 spinnerRaza.setAdapter(adapter);
+                catalogStatus.setText(
+                    cached
+                        ? "Catálogo guardado. Se necesita conexión para crear."
+                        : "Especies disponibles");
+                btnGuardar.setEnabled(!saving);
+                btnReintentar.setVisibility(View.GONE);
                 spinnerRaza.setOnItemSelectedListener(
                     new AdapterView.OnItemSelectedListener() {
                       public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
@@ -418,13 +452,17 @@ public class CrearPersonajeActivity extends AppCompatActivity {
               }
 
               public void error(String m, int code) {
-                Toast.makeText(CrearPersonajeActivity.this, m, Toast.LENGTH_LONG).show();
+                if (isFinishing() || isDestroyed()) return;
+                catalogStatus.setText(m);
+                btnReintentar.setVisibility(View.VISIBLE);
+                btnGuardar.setEnabled(!saving && spinnerRaza.getSelectedItem() != null);
               }
             });
   }
 
   // Guardar por la API compartida y devolver resultado
   private void guardarPersonaje() {
+    if (saving) return;
     if (spinnerRaza.getSelectedItem() == null) {
       Toast.makeText(this, "Cargá el catálogo 2024 antes de crear el personaje.", Toast.LENGTH_LONG)
           .show();
@@ -469,6 +507,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     result.putExtra("personaje_sab", atributos[4]);
     result.putExtra("personaje_car", atributos[5]);
 
+    saving = true;
     btnGuardar.setEnabled(false);
     api.request(
         "POST",
@@ -486,6 +525,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
 
           public void failure(String message, int status) {
             if (isFinishing()) return;
+            saving = false;
             btnGuardar.setEnabled(true);
             Toast.makeText(CrearPersonajeActivity.this, message, Toast.LENGTH_LONG).show();
             if (status == 401) {
@@ -501,7 +541,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   private void refrescarAtributo(int idx) {
     int val = atributos[idx];
     txtAtributos[idx].setText(String.valueOf(val));
-    int mod = (val - 10) / 2;
+    int mod = Math.floorDiv(val - 10, 2);
     txtMods[idx].setText(mod >= 0 ? "(+" + mod + ")" : "(" + mod + ")");
   }
 
