@@ -110,7 +110,7 @@ public final class FraguaUi {
               b.top,
               0,
               b.bottom,
-              new int[] {0xF0183035, 0xF0051016},
+              new int[] {0x60081C22, 0xB0020C10},
               null,
               Shader.TileMode.CLAMP));
       c.drawPath(path, p);
@@ -122,6 +122,26 @@ public final class FraguaUi {
       p.setColor(0x466D5832);
       c.drawLine(b.left + 16, b.top + 6, b.right - 16, b.top + 6, p);
       c.drawLine(b.left + 16, b.bottom - 6, b.right - 16, b.bottom - 6, p);
+      // Mirrored gold corner flourishes remain crisp at every screen density.
+      p.setColor(GOLD);
+      p.setStrokeWidth(1.2f);
+      for (int corner = 0; corner < 4; corner++) {
+        c.save();
+        c.translate((corner % 2 == 0) ? b.left : b.right, corner < 2 ? b.top : b.bottom);
+        c.scale(corner % 2 == 0 ? 1 : -1, corner < 2 ? 1 : -1);
+        Path ornament = new Path();
+        ornament.moveTo(2, 24);
+        ornament.lineTo(2, 2);
+        ornament.lineTo(24, 2);
+        ornament.moveTo(3, 3);
+        ornament.lineTo(14, 8);
+        ornament.lineTo(8, 14);
+        ornament.close();
+        ornament.moveTo(7, 7);
+        ornament.lineTo(20, 20);
+        c.drawPath(ornament, p);
+        c.restore();
+      }
       p.setStyle(Paint.Style.FILL);
     }
 

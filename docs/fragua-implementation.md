@@ -63,3 +63,21 @@ Android tiene verificación de compilación, lint y pruebas nativas con Robolect
 Las reglas centrales se contrastaron con [SRD 5.2.1](https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf). Las instantáneas de clases y especies proceden de [Open5e v2](https://open5e.com/api-docs), documento `srd-2024`, recuperadas el 28 de septiembre de 2026. Open5e identifica ese documento como SRD 5.2; la app conserva esa procedencia y no lo rebautiza 5.2.1. Las descripciones originales se conservan en inglés.
 
 This work includes material from the System Reference Document 5.2 and 5.2.1 (SRD) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode. Las explicaciones breves en español y su adaptación a cálculos/interacciones son modificaciones de Fragua; no implican aprobación de Wizards of the Coast.
+
+## Revisión visual — 29 septiembre 2026
+
+Home y Hechizos ahora usan recursos XML (`view_fragua_shell`, `view_fragua_home`,
+`view_fragua_spells`, `view_fragua_spell_group`, `view_fragua_spell_row`) inflados
+por la navegación real de MainActivity. Home conserva retrato/vida, valores del
+servidor, inventario, notas y compañero. Distribución radial: salvaciones arriba
+izquierda, habilidades arriba derecha, acciones abajo izquierda, hechizos abajo
+derecha, misiones abajo y dados en el centro. Cada sector completo es táctil;
+arrastrar o cancelar no ejecuta una acción. Los controles hijos conservan foco y
+clic accesible. Ataques rápidos flanquean el descanso. Los hechizos se buscan por
+nombre y se agrupan por nivel con secciones plegables; no hay hechizos ficticios.
+
+Las ilustraciones ornamentales de las referencias no son assets separados:
+se conservan fondo/avatar existentes y se incorporan iconos vectoriales propios.
+La composición se aproxima a las referencias; no se declara identidad pixel a
+pixel. El diseño sigue desplazándose verticalmente y admite textos largos.
+Esta revisión visual no corrige por sí sola los errores de validación del backend.

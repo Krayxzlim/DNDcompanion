@@ -3,7 +3,6 @@ package com.miapp.dndcompanion;
 import static com.miapp.dndcompanion.fragua.FraguaUi.*;
 
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
@@ -147,35 +146,20 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void shell() {
-    LinearLayout root = column(this);
-    root.setBackgroundResource(R.drawable.fondo);
-    root.setPadding(px(16), 0, px(16), 0);
+    setContentView(R.layout.view_fragua_shell);
+    View root = findViewById(R.id.fragua_root);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
           androidx.core.graphics.Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-          v.setPadding(px(16) + b.left, b.top, px(16) + b.right, b.bottom);
+          v.setPadding(px(12) + b.left, b.top, px(12) + b.right, b.bottom);
           return insets;
         });
-    LinearLayout header = row(this);
-    header.addView(button(this, "☰", this::menu), new LinearLayout.LayoutParams(px(48), px(64)));
-    title = text(this, "♨  FRAGUA", 31, GOLD);
-    title.setTypeface(Typeface.create("serif", Typeface.BOLD));
-    title.setGravity(Gravity.CENTER);
-    header.addView(title, new LinearLayout.LayoutParams(0, px(74), 1));
-    header.addView(
-        button(this, "↻", () -> vm.load()), new LinearLayout.LayoutParams(px(48), px(56)));
-    root.addView(header);
-    status = text(this, "", 12, MUTED);
-    status.setGravity(Gravity.CENTER);
-    root.addView(status);
-    ScrollView scroll = new ScrollView(this);
-    scroll.setFillViewport(true);
-    body = column(this);
-    body.setPadding(0, px(8), 0, px(28));
-    scroll.addView(body);
-    root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    setContentView(root);
+    title = findViewById(R.id.fragua_title);
+    status = findViewById(R.id.fragua_status);
+    body = findViewById(R.id.fragua_body);
+    findViewById(R.id.fragua_menu).setOnClickListener(v -> menu());
+    findViewById(R.id.fragua_refresh).setOnClickListener(v -> vm.load());
   }
 
   private void menu() {
@@ -1246,7 +1230,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void spells() {
-    heading("Hechizos");
+    body.addView(new com.miapp.dndcompanion.fragua.SpellsScreen(this, sheet(), this::spellDetail));
+    body.addView(button(this, "+ Añadir conjuro de mi hoja", () -> spellEditor(null)));
+    body.addView(button(this, "Explorar catálogo 2024", this::catalog));
     JSONObject recovery = derived().optJSONObject("arcaneRecovery");
     if (recovery != null && recovery.optInt("limit") > 0)
       body.addView(
@@ -1254,75 +1240,6 @@ public class MainActivity extends AppCompatActivity {
               this,
               "Recuperación arcana · hasta " + recovery.optInt("limit") + " niveles",
               this::arcaneRecovery));
-    JSONArray casting = array(derived(), "spellcasting");
-    for (int i = 0; i < casting.length(); i++) {
-      JSONObject x = casting.optJSONObject(i);
-      LinearLayout card = panel(this);
-      card.addView(text(this, x.optString("label"), 20, GOLD));
-      card.addView(
-          text(
-              this,
-              "Mod. "
-                  + signed(x.optInt("modifier"))
-                  + "    Ataque "
-                  + signed(x.optInt("attack"))
-                  + "    CD "
-                  + x.optInt("dc"),
-              17,
-              INK));
-      body.addView(card);
-    }
-    JSONArray slots = array(derived(), "slots");
-    LinearLayout resources = panel(this);
-    resources.addView(text(this, "ESPACIOS DE CONJURO", 15, GOLD));
-    for (int i = 0; i < slots.length(); i++) {
-      JSONObject x = slots.optJSONObject(i);
-      StringBuilder circles = new StringBuilder();
-      for (int j = 0; j < x.optInt("max"); j++)
-        circles.append(j < x.optInt("remaining") ? "● " : "○ ");
-      resources.addView(
-          text(
-              this,
-              "Nivel "
-                  + x.optInt("level")
-                  + "   "
-                  + circles
-                  + " "
-                  + x.optInt("remaining")
-                  + "/"
-                  + x.optInt("max")
-                  + (x.has("pool") ? " · Pacto" : ""),
-              16,
-              INK));
-    }
-    body.addView(resources);
-    body.addView(button(this, "+ Añadir conjuro de mi hoja", () -> spellEditor(null)));
-    body.addView(button(this, "Explorar catálogo 2024", this::catalog));
-    JSONArray a = array(state(), "spells");
-    for (int level = 0; level <= 9; level++) {
-      boolean heading = false;
-      for (int i = 0; i < a.length(); i++) {
-        JSONObject x = a.optJSONObject(i);
-        if (x.optInt("level") != level) continue;
-        if (!heading) {
-          body.addView(text(this, level == 0 ? "TRUCOS" : "NIVEL " + level, 18, GOLD));
-          heading = true;
-        }
-        LinearLayout card = panel(this);
-        card.addView(button(this, x.optString("name") + "  ›", () -> spellDetail(x)));
-        card.addView(
-            text(
-                this,
-                x.optString("castingTime")
-                    + " · "
-                    + x.optString("range")
-                    + (x.optBoolean("concentration") ? " · Concentración" : "")
-                    + (!x.optBoolean("prepared") ? " · No preparado" : ""),
-                14,
-                MUTED));
-        body.addView(card);
-      }
-    }
     body.addView(text(this, "RECURSOS DE CLASE", 18, GOLD));
     JSONArray ares = array(state(), "resources");
     for (int i = 0; i < ares.length(); i++) {
