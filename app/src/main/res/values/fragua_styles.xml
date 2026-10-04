@@ -1,0 +1,5 @@
+<resources>
+    <style name="FraguaText"><item name="android:fontFamily">serif</item><item name="android:textColor">#F2E2BF</item><item name="android:textSize">14sp</item></style>
+    <style name="FraguaTitle" parent="FraguaText"><item name="android:textColor">#DBB56B</item><item name="android:textSize">24sp</item><item name="android:gravity">center</item></style>
+    <style name="FraguaControl" parent="FraguaText"><item name="android:background">@drawable/fragua_panel</item><item name="android:minHeight">48dp</item><item name="android:gravity">center</item><item name="android:padding">8dp</item><item name="android:clickable">true</item><item name="android:focusable">true</item><item name="android:textColor">#DBB56B</item></style>
+</resources>

@@ -1,0 +1,7 @@
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+ <TextView style="@style/FraguaTitle" android:layout_width="match_parent" android:layout_height="56dp" android:text="Hechizos" android:textSize="28sp"/>
+ <LinearLayout android:id="@+id/spells_casting" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+ <LinearLayout android:id="@+id/spells_slots" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/fragua_panel" android:padding="12dp" android:layout_marginVertical="8dp"/>
+ <EditText android:id="@+id/spells_search" style="@style/FraguaText" android:layout_width="match_parent" android:layout_height="52dp" android:background="@drawable/fragua_panel" android:paddingHorizontal="16dp" android:hint="Buscar hechizo por nombre" android:textColorHint="#A3B9BE" android:inputType="text" android:maxLines="1" android:contentDescription="Buscar hechizo por nombre"/>
+ <LinearLayout android:id="@+id/spells_groups" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp"/>
+</merge>

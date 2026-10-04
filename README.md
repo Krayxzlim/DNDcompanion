@@ -47,3 +47,13 @@ El backend incluye pruebas de integración de persistencia y permisos. Para veri
 La compilación completa de Gradle/APK no pudo ejecutarse en el entorno de edición por acceso de red a Gradle. Debe confirmarse en Android Studio antes de integrar la rama.
 
 Ver [contrato REST y configuración del backend](https://github.com/Krayxzlim/dnd-campaign-hub-backend/tree/feat/supabase-prisma-integration/docs/integration.md).
+
+## Olvidé mi contraseña
+
+En el login, ingresar el email y tocar **Olvidé mi contraseña**. Se solicita a Supabase el correo de recuperación; el mensaje no revela si la cuenta existe. Abrir el enlace, elegir y confirmar la nueva contraseña en la web y volver a Android para ingresar. No se usan deep links ni se necesita la contraseña anterior.
+
+`PASSWORD_RESET_URL` en `local.properties` o en el entorno debe apuntar a la web actualizada con `/?recovery=1`, y esa URL exacta debe estar autorizada en **Supabase → Authentication → URL Configuration → Redirect URLs**. No incluir secretos.
+
+Debug usa por defecto `http://localhost:5173/?recovery=1`: abrir el correo en la computadora donde corre Vite. Para abrirlo en el navegador del emulador, configurar `http://10.0.2.2:5173/?recovery=1`, autorizarla en Supabase y ejecutar Vite con `npm run dev -- --host 0.0.0.0`. Para un celular físico y release, configurar una web HTTPS accesible; localhost no apunta a la computadora desde un celular. Release exige configurar la URL antes de solicitar recuperación.
+
+Se requiere integrar también el cambio de recuperación del frontend. La solicitud funciona directamente contra Supabase Auth, sin depender de Express. Después del cambio, una sesión antigua de Android puede expirar y solicitar login nuevamente.

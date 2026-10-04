@@ -1,0 +1,546 @@
+{
+  "characterId": "00000000-0000-4000-8000-000000000001",
+  "stateVersion": 1,
+  "schemaVersion": 1,
+  "rulesVersion": "srd-5.2.1-core-1",
+  "identity": {
+    "name": "Aster",
+    "race": "Elfo",
+    "characterClass": "Wizard",
+    "level": 5
+  },
+  "state": {
+    "configured": true,
+    "classes": [
+      {
+        "key": "wizard",
+        "level": 5
+      }
+    ],
+    "hp": {
+      "current": 24,
+      "max": 32,
+      "temp": 5
+    },
+    "xp": 7800,
+    "speed": 30,
+    "armor": {
+      "base": 10,
+      "dexterity": true,
+      "dexCap": 99,
+      "shield": 0,
+      "bonus": 0
+    },
+    "skills": {},
+    "saveProficiencies": [],
+    "inventory": [],
+    "spells": [],
+    "resources": [],
+    "companions": [
+      {
+        "name": "Bruma",
+        "active": true
+      }
+    ],
+    "slotsSpent": {},
+    "hitDiceSpent": {},
+    "exhaustion": 0,
+    "conditions": [],
+    "concentration": null,
+    "death": {
+      "successes": 0,
+      "failures": 0
+    },
+    "lastLongRestEnd": null,
+    "shortRestOpen": false
+  },
+  "derived": {
+    "abilities": [
+      {
+        "key": "strength",
+        "label": "Fuerza",
+        "score": 10,
+        "baseScore": 10,
+        "modifier": 0
+      },
+      {
+        "key": "dexterity",
+        "label": "Destreza",
+        "score": 14,
+        "baseScore": 14,
+        "modifier": 2
+      },
+      {
+        "key": "constitution",
+        "label": "Constitución",
+        "score": 14,
+        "baseScore": 14,
+        "modifier": 2
+      },
+      {
+        "key": "intelligence",
+        "label": "Inteligencia",
+        "score": 18,
+        "baseScore": 18,
+        "modifier": 4
+      },
+      {
+        "key": "wisdom",
+        "label": "Sabiduría",
+        "score": 12,
+        "baseScore": 12,
+        "modifier": 1
+      },
+      {
+        "key": "charisma",
+        "label": "Carisma",
+        "score": 10,
+        "baseScore": 10,
+        "modifier": 0
+      }
+    ],
+    "proficiency": 3,
+    "saves": [
+      {
+        "key": "strength",
+        "label": "Fuerza",
+        "score": 10,
+        "baseScore": 10,
+        "modifier": 0,
+        "proficient": false
+      },
+      {
+        "key": "dexterity",
+        "label": "Destreza",
+        "score": 14,
+        "baseScore": 14,
+        "modifier": 2,
+        "proficient": false
+      },
+      {
+        "key": "constitution",
+        "label": "Constitución",
+        "score": 14,
+        "baseScore": 14,
+        "modifier": 2,
+        "proficient": false
+      },
+      {
+        "key": "intelligence",
+        "label": "Inteligencia",
+        "score": 18,
+        "baseScore": 18,
+        "modifier": 4,
+        "proficient": false
+      },
+      {
+        "key": "wisdom",
+        "label": "Sabiduría",
+        "score": 12,
+        "baseScore": 12,
+        "modifier": 1,
+        "proficient": false
+      },
+      {
+        "key": "charisma",
+        "label": "Carisma",
+        "score": 10,
+        "baseScore": 10,
+        "modifier": 0,
+        "proficient": false
+      }
+    ],
+    "skills": [
+      {
+        "key": "athletics",
+        "label": "Atletismo",
+        "ability": "strength",
+        "rank": 0,
+        "modifier": 0
+      },
+      {
+        "key": "acrobatics",
+        "label": "Acrobacias",
+        "ability": "dexterity",
+        "rank": 0,
+        "modifier": 2
+      },
+      {
+        "key": "sleightOfHand",
+        "label": "Juego de manos",
+        "ability": "dexterity",
+        "rank": 0,
+        "modifier": 2
+      },
+      {
+        "key": "stealth",
+        "label": "Sigilo",
+        "ability": "dexterity",
+        "rank": 0,
+        "modifier": 2
+      },
+      {
+        "key": "arcana",
+        "label": "Conocimiento arcano",
+        "ability": "intelligence",
+        "rank": 0,
+        "modifier": 4
+      },
+      {
+        "key": "history",
+        "label": "Historia",
+        "ability": "intelligence",
+        "rank": 0,
+        "modifier": 4
+      },
+      {
+        "key": "investigation",
+        "label": "Investigación",
+        "ability": "intelligence",
+        "rank": 0,
+        "modifier": 4
+      },
+      {
+        "key": "nature",
+        "label": "Naturaleza",
+        "ability": "intelligence",
+        "rank": 0,
+        "modifier": 4
+      },
+      {
+        "key": "religion",
+        "label": "Religión",
+        "ability": "intelligence",
+        "rank": 0,
+        "modifier": 4
+      },
+      {
+        "key": "animalHandling",
+        "label": "Trato con animales",
+        "ability": "wisdom",
+        "rank": 0,
+        "modifier": 1
+      },
+      {
+        "key": "insight",
+        "label": "Perspicacia",
+        "ability": "wisdom",
+        "rank": 0,
+        "modifier": 1
+      },
+      {
+        "key": "medicine",
+        "label": "Medicina",
+        "ability": "wisdom",
+        "rank": 0,
+        "modifier": 1
+      },
+      {
+        "key": "perception",
+        "label": "Percepción",
+        "ability": "wisdom",
+        "rank": 0,
+        "modifier": 1
+      },
+      {
+        "key": "survival",
+        "label": "Supervivencia",
+        "ability": "wisdom",
+        "rank": 0,
+        "modifier": 1
+      },
+      {
+        "key": "deception",
+        "label": "Engaño",
+        "ability": "charisma",
+        "rank": 0,
+        "modifier": 0
+      },
+      {
+        "key": "intimidation",
+        "label": "Intimidación",
+        "ability": "charisma",
+        "rank": 0,
+        "modifier": 0
+      },
+      {
+        "key": "performance",
+        "label": "Interpretación",
+        "ability": "charisma",
+        "rank": 0,
+        "modifier": 0
+      },
+      {
+        "key": "persuasion",
+        "label": "Persuasión",
+        "ability": "charisma",
+        "rank": 0,
+        "modifier": 0
+      }
+    ],
+    "ac": 12,
+    "initiative": 2,
+    "speed": 30,
+    "passivePerception": 11,
+    "slots": [
+      {
+        "level": 1,
+        "max": 4,
+        "remaining": 4
+      },
+      {
+        "level": 2,
+        "max": 3,
+        "remaining": 3
+      },
+      {
+        "level": 3,
+        "max": 2,
+        "remaining": 2
+      }
+    ],
+    "spellcasting": [
+      {
+        "origin": "wizard",
+        "label": "Mago",
+        "ability": "intelligence",
+        "modifier": 4,
+        "attack": 7,
+        "dc": 15
+      }
+    ],
+    "attacks": [],
+    "attacksPerAction": 1,
+    "hitDice": [
+      {
+        "key": "wizard",
+        "die": 6,
+        "max": 5,
+        "remaining": 5
+      }
+    ],
+    "xp": {
+      "current": 7800,
+      "start": 6500,
+      "next": 14000
+    },
+    "classFeatures": [
+      {
+        "key": "srd-2024_wizard_ability-score-improvement",
+        "name": "Ability Score Improvement",
+        "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Wizard levels 8, 12, and 16.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_arcane-recovery",
+        "name": "Arcane Recovery",
+        "description": "You can regain some of your magical energy by studying your spellbook. When you finish a Short Rest, you can choose expended spell slots to recover. The spell slots can have a combined level equal to no more than half your Wizard level (round up), and none of the slots can be level 6 or higher. For example, if you're a level 4 Wizard, you can recover up to two levels' worth of spell slots, regaining either one level 2 spell slot or two level 1 spell slots.\n\nOnce you use this feature, you can't do so again until you finish a Long Rest.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_memorize-spell",
+        "name": "Memorize Spell",
+        "description": "Whenever you finish a Short Rest, you can study your spellbook and replace one of the level 1+ Wizard spells you have prepared for your Spellcasting feature with another level 1+ spell from the book.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_ritual-adept",
+        "name": "Ritual Adept",
+        "description": "You can cast any spell as a Ritual if that spell has the Ritual tag and the spell is in your spellbook. You needn't have the spell prepared, but you must read from the book to cast a spell in this way.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_scholar",
+        "name": "Scholar",
+        "description": "While studying magic, you also specialized in another field of study. Choose one of the following skills in which you have proficiency: Arcana, History, Investigation, Medicine, Nature, or Religion. You have Expertise in the chosen skill.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_spellcasting",
+        "name": "Spellcasting",
+        "description": "As a student of arcane magic, you have learned to cast spells. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Wizard spells, which appear in the Wizard spell list later in the class's description.\n\n**Cantrips.** You know three Wizard cantrips of your choice. *Light*, *Mage Hand*, and *Ray of Frost* are recommended. Whenever you finish a Long Rest, you can replace one of your cantrips from this feature with another Wizard cantrip of your choice.\n\nWhen you reach Wizard levels 4 and 10, you learn another Wizard cantrip of your choice, as shown in the Cantrips column of the Wizard Features table.\n\n**Spellbook.** Your wizardly apprenticeship culminated in the creation of a unique book: your spellbook. It is a Tiny object that weighs 3 pounds, contains 100 pages, and can be read only by you or someone casting *Identify*. You determine the book's appearance and materials, such as a gilt-edged tome or a collection of vellum bound with twine.\n\nThe book contains the level 1+ spells you know. It starts with six level 1 Wizard spells of your choice. *Detect Magic*, *Feather Fall*, *Mage Armor*, *Magic Missile*, *Sleep*, and *Thunderwave* are recommended.\n\nWhenever you gain a Wizard level after 1, add two Wizard spells of your choice to your spellbook. Each of these spells must be of a level for which you have spell slots, as shown in the Wizard Features table. The spells are the culmination of arcane research you do regularly.\n\n**Spell Slots.** The Wizard Features table shows how many spell slots you have to cast your level 1+ spells. You regain all expended slots when you finish a Long Rest.\n\n**Prepared Spells of Level 1+.** You prepare the list of level 1+ spells that are available for you to cast with this feature. To do so, choose four spells from your spellbook. The chosen spells must be of a level for which you have spell slots.\n\nThe number of spells on your list increases as you gain Wizard levels, as shown in the Prepared Spells column of the Wizard Features table. Whenever that number increases, choose additional Wizard spells until the number of spells on your list matches the number in the table. The chosen spells must be of a level for which you have spell slots. For example, if you're a level 3 Wizard, your list of prepared spells can include six spells of levels 1 and 2 in any combination, chosen from your spellbook.\n\nIf another Wizard feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Wizard spells for you.\n\n**Changing Your Prepared Spells.** Whenever you finish a Long Rest, you can change your list of prepared spells, replacing any of the spells there with spells from your spellbook.\n\n**Spellcasting Ability.** Intelligence is your spellcasting ability for your Wizard spells.\n\n**Spellcasting Focus.** You can use an Arcane Focus or your spellbook as a Spellcasting Focus for your Wizard spells.\n\n> ### Expanding and Replacing a Spellbook\n\n> The spells you add to your spellbook as you gain levels reflect your ongoing magical research, but you might find other spells during your adventures that you can add to the book. You could discover a Wizard spell on a *Spell Scroll*, for example, and then copy it into your spellbook.\n\n>**Copying a Spell into the Book.** When you find a level 1+ Wizard spell, you can copy it into your spellbook if it's of a level you can prepare and if you have time to copy it. For each level of the spell, the transcription takes 2 hours and costs 50 GP. Afterward you can prepare the spell like the other spells in your spellbook.\n\n> **Copying the Book.** You can copy a spell from your spellbook into another book. This is like copying a new spell into your spellbook but faster, since you already know how to cast the spell. You need spend only 1 hour and 10 GP for each level of the copied spell.\n\n> If you lose your spellbook, you can use the same procedure to transcribe the Wizard spells that you have prepared into a new spellbook. Filling out the remainder of the new book requires you to find new spells to do so. For this reason, many wizards keep a backup spellbook.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      },
+      {
+        "key": "srd-2024_wizard_wizard-subclass",
+        "name": "Wizard Subclass",
+        "description": "You gain a Wizard subclass of your choice. The Evoker subclass is detailed after this class's description. A subclass is a specialization that grants you features at certain Wizard levels. For the rest of your career, you gain each of your subclass's features that are of your Wizard level or lower.",
+        "origin": "wizard",
+        "source": "System Reference Document 5.2"
+      }
+    ],
+    "subclassOptions": {
+      "barbarian": [
+        {
+          "key": "srd-2024_path-of-the-berserker",
+          "name": "Path of the Berserker"
+        }
+      ],
+      "bard": [
+        {
+          "key": "srd-2024_college-of-lore",
+          "name": "College of Lore"
+        }
+      ],
+      "cleric": [
+        {
+          "key": "srd-2024_life-domain",
+          "name": "Life Domain"
+        }
+      ],
+      "druid": [
+        {
+          "key": "srd-2024_circle-of-the-land",
+          "name": "Circle of the Land"
+        }
+      ],
+      "fighter": [
+        {
+          "key": "srd-2024_champion",
+          "name": "Champion"
+        }
+      ],
+      "monk": [
+        {
+          "key": "srd-2024_warrior-of-the-open-hand",
+          "name": "Warrior of the Open Hand"
+        }
+      ],
+      "paladin": [
+        {
+          "key": "srd-2024_oath-of-devotion",
+          "name": "Oath of Devotion"
+        }
+      ],
+      "ranger": [
+        {
+          "key": "srd-2024_hunter",
+          "name": "Hunter"
+        }
+      ],
+      "rogue": [
+        {
+          "key": "srd-2024_thief",
+          "name": "Thief"
+        }
+      ],
+      "sorcerer": [
+        {
+          "key": "srd-2024_draconic-sorcery",
+          "name": "Draconic Sorcery"
+        }
+      ],
+      "warlock": [
+        {
+          "key": "srd-2024_fiend-patron",
+          "name": "Fiend Patron"
+        }
+      ],
+      "wizard": [
+        {
+          "key": "srd-2024_evoker",
+          "name": "Evoker"
+        }
+      ]
+    },
+    "arcaneRecovery": {
+      "limit": 3,
+      "available": false
+    },
+    "actions": [
+      {
+        "name": "Atacar",
+        "description": "Realizá 1 ataque(s). Podés sustituir un ataque por un golpe sin armas; no se resuelve el objetivo automáticamente.",
+        "category": "Acción"
+      },
+      {
+        "name": "Golpe sin armas",
+        "description": "Daño: tirada de ataque con Fuerza y competencia; al impactar, 1 contundente. Agarrar o empujar: el objetivo elige salvación de Fuerza o Destreza, CD 11; requiere alcance y tamaño válido. Empujar permite desplazar 5 pies o derribar.",
+        "category": "Acción"
+      },
+      {
+        "name": "Correr",
+        "description": "Obtenés movimiento adicional igual a tu velocidad actual (30 pies), sujeto a modificadores.",
+        "category": "Acción"
+      },
+      {
+        "name": "Destrabarse",
+        "description": "Tu movimiento no provoca ataques de oportunidad durante el resto del turno.",
+        "category": "Acción"
+      },
+      {
+        "name": "Esquivar",
+        "description": "Hasta tu próximo turno: ataques visibles contra vos con desventaja y salvaciones de Destreza con ventaja. Termina si quedás incapacitado o tu velocidad es 0.",
+        "category": "Acción"
+      },
+      {
+        "name": "Ayudar",
+        "description": "Ayudá a una prueba con una competencia apropiada, o distraé a un enemigo a 5 pies para dar ventaja al próximo ataque de un aliado antes de tu siguiente turno.",
+        "category": "Acción"
+      },
+      {
+        "name": "Esconderse",
+        "description": "Cumplí los requisitos de cobertura u oscuridad y de estar fuera de la vista enemiga. Prueba de Sigilo CD 15; guardá el total para detectar al personaje.",
+        "category": "Acción"
+      },
+      {
+        "name": "Influir",
+        "description": "Presentá una petición a una criatura. El DM determina si es posible y la prueba apropiada según su actitud.",
+        "category": "Acción"
+      },
+      {
+        "name": "Magia",
+        "description": "Lanzá un conjuro de una acción o activá un efecto mágico cuyo tiempo sea una acción. Revisá componentes y recursos.",
+        "category": "Acción"
+      },
+      {
+        "name": "Preparar",
+        "description": "Elegí un desencadenante perceptible y una acción o movimiento. Usá tu reacción cuando ocurra antes de tu próximo turno. Preparar un conjuro requiere concentración y gasta el espacio al prepararlo.",
+        "category": "Acción"
+      },
+      {
+        "name": "Buscar",
+        "description": "Prueba de Sabiduría apropiada: Perspicacia, Medicina, Percepción o Supervivencia.",
+        "category": "Acción"
+      },
+      {
+        "name": "Estudiar",
+        "description": "Prueba de Inteligencia apropiada: Conocimiento arcano, Historia, Investigación, Naturaleza o Religión.",
+        "category": "Acción"
+      },
+      {
+        "name": "Utilizar",
+        "description": "Usá un objeto cuyo uso requiera una acción. Objetos mágicos pueden requerir Magia.",
+        "category": "Acción"
+      },
+      {
+        "name": "Improvisar",
+        "description": "Describí la acción al DM para acordar si es posible, la prueba, el coste y su efecto.",
+        "category": "Acción"
+      },
+      {
+        "name": "Ataque de oportunidad",
+        "description": "Cuando una criatura visible sale de tu alcance usando movimiento, acción, acción adicional o reacción: un ataque cuerpo a cuerpo antes de que salga. No se provoca al teletransportarse ni por movimiento que no use esos medios.",
+        "category": "Reacción"
+      },
+      {
+        "name": "Interactuar con un objeto",
+        "description": "Una interacción sencilla durante tu movimiento o acción; una interacción adicional puede requerir Utilizar.",
+        "category": "Otras"
+      }
+    ]
+  },
+  "completeness": {
+    "configured": true,
+    "automation": "core",
+    "warnings": [
+      "Rasgos y excepciones no enumerados: resolución asistida; no se certifica automatización completa de todas las clases."
+    ]
+  }
+}
