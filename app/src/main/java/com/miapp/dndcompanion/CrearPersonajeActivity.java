@@ -1,644 +1,627 @@
 package com.miapp.dndcompanion;
 
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.view.Gravity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
-import android.view.animation.AnimationUtils;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.SeekBar;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.ViewGroup;
+import android.widget.*;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
+import com.miapp.dndcompanion.creation.*;
+import com.miapp.dndcompanion.fragua.GameRepository;
 import com.miapp.dndcompanion.network.ApiClient;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.json.JSONArray;
+import java.util.*;
 import org.json.JSONObject;
 
 public class CrearPersonajeActivity extends AppCompatActivity {
-
-  private final ExecutorService executor = Executors.newSingleThreadExecutor();
-  private final Handler mainHandler = new Handler(Looper.getMainLooper());
-
-  // Vistas
-  private EditText editNombre;
-  private Spinner spinnerRaza, spinnerClase, spinnerAlineacion;
-  private TextView txtRazaInfo, txtNivelNum;
-  private SeekBar seekNivel;
-
-  // Atributos
-  private final int[] atributos = {10, 10, 10, 10, 10, 10};
-  private final TextView[] txtAtributos = new TextView[6];
-  private final TextView[] txtMods = new TextView[6];
-  private static final String[] ATTR_NOMBRES = {"FUE", "DES", "CON", "INT", "SAB", "CAR"};
-
-  // Datos API
-  private final List<String> razasNombres = new ArrayList<>();
-  private final List<String> razasInfo = new ArrayList<>();
-
-  private static final String[] CLASES_SRD = {
-    "Bárbaro", "Bardo", "Clérigo", "Druida", "Guerrero",
-    "Mago", "Monje", "Paladín", "Explorador", "Pícaro",
-    "Hechicero", "Brujo"
+  private CreationViewModel model;
+  private CharacterDraft d;
+  private LinearLayout root, body;
+  private Button next;
+  private ScrollView currentScroll;
+  private CharacterDraft.Step renderedStep;
+  private static final String[] TITLES = {
+    "Elegí tu especie",
+    "Elegí tu clase",
+    "¿Cómo obtenés tus atributos?",
+    "Asigná tus atributos",
+    "Conocé tu especie",
+    "Conocé tu clase",
+    "Dale una identidad",
+    "Revisá tu personaje"
   };
-
-  private static final String[] ALINEACIONES = {
-    "Legal Bueno", "Neutral Bueno", "Caótico Bueno",
-    "Legal Neutral", "Neutral Verdadero", "Caótico Neutral",
-    "Legal Malvado", "Neutral Malvado", "Caótico Malvado"
-  };
-
-  private ApiClient api;
-  private Button btnGuardar, btnReintentar;
-  private boolean saving;
-  private TextView catalogStatus;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    api = ApiClient.get(this);
-    setContentView(buildLayout());
-    cargarRazas();
-  }
-
-  // Layout completo
-  private View buildLayout() {
-    ScrollView scroll = new ScrollView(this);
-    scroll.setBackgroundColor(color(R.color.fondo));
-
-    LinearLayout root = new LinearLayout(this);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(0, 0, 0, dp(40));
-    scroll.addView(root);
-
-    // Header
-    LinearLayout header = new LinearLayout(this);
-    header.setOrientation(LinearLayout.VERTICAL);
-    header.setGravity(Gravity.CENTER);
-    header.setBackgroundColor(color(R.color.seccion_fondo));
-    header.setPadding(dp(16), dp(36), dp(16), dp(16));
-
-    TextView btnVolver = new TextView(this);
-    btnVolver.setText("← VOLVER");
-    btnVolver.setTextColor(color(R.color.dorado_claro));
-    btnVolver.setTextSize(11);
-    btnVolver.setTypeface(Typeface.MONOSPACE);
-    btnVolver.setClickable(true);
-    btnVolver.setFocusable(true);
-    LinearLayout.LayoutParams vLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    vLp.setMargins(0, 0, 0, dp(10));
-    btnVolver.setLayoutParams(vLp);
-    btnVolver.setOnClickListener(
-        v -> {
-          v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.btn_press));
-          finish();
-          overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        });
-    header.addView(btnVolver);
-
-    TextView titulo = new TextView(this);
-    titulo.setText("⚔  CREAR PERSONAJE");
-    titulo.setTextColor(color(R.color.dorado));
-    titulo.setTextSize(20);
-    titulo.setTypeface(Typeface.create("serif", Typeface.BOLD));
-    titulo.setGravity(Gravity.CENTER);
-    header.addView(titulo);
-
-    TextView sub = new TextView(this);
-    sub.setText("RAZAS VÍA OPEN5E API  ·  PERSONAJE SINCRONIZADO");
-    sub.setTextColor(color(R.color.texto_secundario));
-    sub.setTextSize(8);
-    sub.setLetterSpacing(0.08f);
-    sub.setGravity(Gravity.CENTER);
-    LinearLayout.LayoutParams subLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    subLp.setMargins(0, dp(4), 0, 0);
-    sub.setLayoutParams(subLp);
-    header.addView(sub);
-
-    root.addView(header);
-    root.addView(separadorDorado());
-
-    // Nombre
-    root.addView(labelSeccion("✦  NOMBRE DEL PERSONAJE", null));
-    editNombre = new EditText(this);
-    editNombre.setHint("Ej: Arannis, Grog, Mercer...");
-    editNombre.setFilters(
-        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(160)});
-    editNombre.setHintTextColor(color(R.color.texto_secundario));
-    editNombre.setTextColor(color(R.color.texto));
-    editNombre.setTextSize(16);
-    editNombre.setBackgroundResource(R.drawable.stat_bg);
-    editNombre.setPadding(dp(12), dp(10), dp(12), dp(10));
-    LinearLayout.LayoutParams nameLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    nameLp.setMargins(dp(12), 0, dp(12), dp(4));
-    editNombre.setLayoutParams(nameLp);
-    root.addView(editNombre);
-
-    // Raza (desde API)
-    root.addView(labelSeccion("✦  RAZA", "Cargando razas desde la API..."));
-
-    spinnerRaza = new Spinner(this);
-    spinnerRaza.setBackgroundResource(R.drawable.stat_bg);
-    LinearLayout.LayoutParams spLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    spLp.setMargins(dp(12), 0, dp(12), dp(6));
-    spinnerRaza.setLayoutParams(spLp);
-    root.addView(spinnerRaza);
-    catalogStatus = new TextView(this);
-    catalogStatus.setTextColor(color(R.color.texto));
-    catalogStatus.setPadding(dp(12), dp(8), dp(12), dp(8));
-    root.addView(catalogStatus);
-    btnReintentar = new Button(this);
-    btnReintentar.setText("Reintentar carga de especies");
-    btnReintentar.setVisibility(View.GONE);
-    btnReintentar.setOnClickListener(v -> cargarRazas());
-    root.addView(btnReintentar);
-
-    txtRazaInfo = new TextView(this);
-    txtRazaInfo.setTextColor(color(R.color.dorado_claro));
-    txtRazaInfo.setTextSize(11);
-    txtRazaInfo.setBackgroundResource(R.drawable.stat_bg);
-    txtRazaInfo.setPadding(dp(10), dp(8), dp(10), dp(8));
-    txtRazaInfo.setVisibility(View.GONE);
-    LinearLayout.LayoutParams infoLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    infoLp.setMargins(dp(12), 0, dp(12), dp(4));
-    txtRazaInfo.setLayoutParams(infoLp);
-    root.addView(txtRazaInfo);
-
-    // Clase
-    root.addView(labelSeccion("✦  CLASE", null));
-
-    spinnerClase = new Spinner(this);
-    spinnerClase.setBackgroundResource(R.drawable.stat_bg);
-    ArrayAdapter<String> claseAdpt =
-        new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, CLASES_SRD);
-    claseAdpt.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-    spinnerClase.setAdapter(claseAdpt);
-    LinearLayout.LayoutParams claseLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    claseLp.setMargins(dp(12), 0, dp(12), dp(4));
-    spinnerClase.setLayoutParams(claseLp);
-    root.addView(spinnerClase);
-
-    // Alineación
-    root.addView(labelSeccion("✦  ALINEACIÓN", null));
-
-    spinnerAlineacion = new Spinner(this);
-    spinnerAlineacion.setBackgroundResource(R.drawable.stat_bg);
-    ArrayAdapter<String> alineaAdpt =
-        new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ALINEACIONES);
-    alineaAdpt.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-    spinnerAlineacion.setAdapter(alineaAdpt);
-    spinnerAlineacion.setSelection(5); // Caótico Neutral
-    LinearLayout.LayoutParams alineaLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    alineaLp.setMargins(dp(12), 0, dp(12), dp(4));
-    spinnerAlineacion.setLayoutParams(alineaLp);
-    root.addView(spinnerAlineacion);
-
-    // Nivel
-    root.addView(labelSeccion("✦  NIVEL", null));
-
-    LinearLayout nivelRow = new LinearLayout(this);
-    nivelRow.setOrientation(LinearLayout.HORIZONTAL);
-    nivelRow.setGravity(Gravity.CENTER_VERTICAL);
-    LinearLayout.LayoutParams nivelRowLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    nivelRowLp.setMargins(dp(12), 0, dp(12), dp(8));
-    nivelRow.setLayoutParams(nivelRowLp);
-
-    seekNivel = new SeekBar(this);
-    seekNivel.setMax(19);
-    seekNivel.setProgress(4); // nivel 5 por defecto
-    seekNivel.setLayoutParams(
-        new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-    txtNivelNum = new TextView(this);
-    txtNivelNum.setText("5");
-    txtNivelNum.setTextColor(color(R.color.dorado));
-    txtNivelNum.setTextSize(22);
-    txtNivelNum.setTypeface(Typeface.DEFAULT_BOLD);
-    txtNivelNum.setGravity(Gravity.CENTER);
-    LinearLayout.LayoutParams nivelNumLp =
-        new LinearLayout.LayoutParams(dp(48), LinearLayout.LayoutParams.WRAP_CONTENT);
-    nivelNumLp.setMargins(dp(10), 0, 0, 0);
-    txtNivelNum.setLayoutParams(nivelNumLp);
-
-    seekNivel.setOnSeekBarChangeListener(
-        new SeekBar.OnSeekBarChangeListener() {
-          @Override
-          public void onProgressChanged(SeekBar s, int p, boolean u) {
-            txtNivelNum.setText(String.valueOf(p + 1));
-          }
-
-          @Override
-          public void onStartTrackingTouch(SeekBar s) {}
-
-          @Override
-          public void onStopTrackingTouch(SeekBar s) {}
-        });
-
-    nivelRow.addView(seekNivel);
-    nivelRow.addView(txtNivelNum);
-    root.addView(nivelRow);
-
-    // Atributos
-    root.addView(
-        labelSeccion("✦  ATRIBUTOS BASE", "Usá los botones − / + para ajustar cada valor (3–20)"));
-
-    LinearLayout grid = new LinearLayout(this);
-    grid.setOrientation(LinearLayout.HORIZONTAL);
-    grid.setGravity(Gravity.CENTER);
-    LinearLayout.LayoutParams gridLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    gridLp.setMargins(dp(10), dp(4), dp(10), dp(12));
-    grid.setLayoutParams(gridLp);
-
-    for (int i = 0; i < 6; i++) {
-      final int idx = i;
-
-      LinearLayout col = new LinearLayout(this);
-      col.setOrientation(LinearLayout.VERTICAL);
-      col.setGravity(Gravity.CENTER);
-      col.setBackgroundResource(R.drawable.stat_bg);
-      col.setPadding(dp(4), dp(6), dp(4), dp(6));
-      LinearLayout.LayoutParams colLp =
-          new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-      colLp.setMargins(dp(2), 0, dp(2), 0);
-      col.setLayoutParams(colLp);
-
-      TextView label = new TextView(this);
-      label.setText(ATTR_NOMBRES[i]);
-      label.setTextColor(color(R.color.dorado_claro));
-      label.setTextSize(8);
-      label.setGravity(Gravity.CENTER);
-      label.setLayoutParams(wrapMatch());
-      col.addView(label);
-
-      txtAtributos[i] = new TextView(this);
-      txtAtributos[i].setText("10");
-      txtAtributos[i].setTextColor(color(R.color.texto));
-      txtAtributos[i].setTextSize(16);
-      txtAtributos[i].setTypeface(Typeface.DEFAULT_BOLD);
-      txtAtributos[i].setGravity(Gravity.CENTER);
-      txtAtributos[i].setLayoutParams(wrapMatch());
-      col.addView(txtAtributos[i]);
-
-      txtMods[i] = new TextView(this);
-      txtMods[i].setText("(+0)");
-      txtMods[i].setTextColor(color(R.color.texto_secundario));
-      txtMods[i].setTextSize(8);
-      txtMods[i].setGravity(Gravity.CENTER);
-      txtMods[i].setLayoutParams(wrapMatch());
-      col.addView(txtMods[i]);
-
-      // Botones − +
-      LinearLayout btns = new LinearLayout(this);
-      btns.setOrientation(LinearLayout.HORIZONTAL);
-      btns.setGravity(Gravity.CENTER);
-      LinearLayout.LayoutParams btnsLp =
-          new LinearLayout.LayoutParams(
-              LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-      btnsLp.setMargins(0, dp(4), 0, 0);
-      btns.setLayoutParams(btnsLp);
-
-      Button btnM = new Button(this);
-      btnM.setText("−");
-      btnM.setTextSize(12);
-      btnM.setTextColor(color(R.color.texto));
-      btnM.setBackgroundTintList(
-          android.content.res.ColorStateList.valueOf(color(R.color.boton_bg)));
-      btnM.setPadding(0, 0, 0, 0);
-      btnM.setLayoutParams(new LinearLayout.LayoutParams(dp(28), dp(24)));
-      btnM.setOnClickListener(
-          v -> {
-            if (atributos[idx] > 3) {
-              atributos[idx]--;
-              refrescarAtributo(idx);
-            }
-          });
-
-      Button btnP = new Button(this);
-      btnP.setText("+");
-      btnP.setTextSize(12);
-      btnP.setTextColor(color(R.color.dorado));
-      btnP.setBackgroundTintList(
-          android.content.res.ColorStateList.valueOf(color(R.color.boton_bg)));
-      btnP.setPadding(0, 0, 0, 0);
-      LinearLayout.LayoutParams bpLp = new LinearLayout.LayoutParams(dp(28), dp(24));
-      bpLp.setMargins(dp(2), 0, 0, 0);
-      btnP.setLayoutParams(bpLp);
-      btnP.setOnClickListener(
-          v -> {
-            if (atributos[idx] < 20) {
-              atributos[idx]++;
-              refrescarAtributo(idx);
-            }
-          });
-
-      btns.addView(btnM);
-      btns.addView(btnP);
-      col.addView(btns);
-      grid.addView(col);
+  protected void onCreate(Bundle state) {
+    super.onCreate(state);
+    model = new ViewModelProvider(this).get(CreationViewModel.class);
+    if (state != null
+        && model.draft.step == CharacterDraft.Step.SPECIES
+        && model.draft.speciesKey.isEmpty()) {
+      CharacterDraft restored = (CharacterDraft) state.getSerializable("creation_draft");
+      if (restored != null) model.draft = restored;
+      model.uncertainSubmission = state.getBoolean("submission_pending", false);
+      if (model.uncertainSubmission) model.draft.step = CharacterDraft.Step.REVIEW;
     }
-    root.addView(grid);
-
-    // Botón guardar
-    root.addView(separadorDorado());
-
-    btnGuardar = new Button(this);
-    btnGuardar.setText("⚔  CREAR PERSONAJE");
-    btnGuardar.setTextColor(color(R.color.dorado));
-    btnGuardar.setTextSize(14);
-    btnGuardar.setTypeface(Typeface.create("serif", Typeface.BOLD));
-    btnGuardar.setBackgroundTintList(
-        android.content.res.ColorStateList.valueOf(color(R.color.boton_bg)));
-    LinearLayout.LayoutParams guardarLp =
-        new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
-    guardarLp.setMargins(dp(12), dp(16), dp(12), 0);
-    btnGuardar.setLayoutParams(guardarLp);
-    btnGuardar.setOnClickListener(
-        v -> {
-          v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.btn_press));
-          guardarPersonaje();
-        });
-    root.addView(btnGuardar);
-    TextView nextStep = new TextView(this);
-    nextStep.setText(
-        "Después de crear, completá los PV, competencias y recursos desde Completar ficha.");
-    nextStep.setTextColor(color(R.color.texto_secundario));
-    nextStep.setPadding(dp(12), dp(12), dp(12), 0);
-    root.addView(nextStep);
-
-    return scroll;
-  }
-
-  // Cargar razas desde Open5e
-  private void cargarRazas() {
-    catalogStatus.setText("Cargando especies…");
-    btnReintentar.setVisibility(View.GONE);
-    btnGuardar.setEnabled(false);
-    com.miapp.dndcompanion.fragua.GameRepository.get(this)
-        .read(
-            "/catalog/species",
-            new com.miapp.dndcompanion.fragua.GameRepository.Result() {
-              public void ok(Object data, boolean cached, long at) {
-                if (isFinishing() || isDestroyed()) return;
-                JSONArray results =
-                    data instanceof JSONObject ? ((JSONObject) data).optJSONArray("results") : null;
-                if (results == null || results.length() == 0) {
-                  error("El catálogo de especies está vacío o no es válido.", 502);
-                  return;
-                }
-                razasNombres.clear();
-                razasInfo.clear();
-                for (int i = 0; i < results.length(); i++) {
-                  JSONObject r = results.optJSONObject(i);
-                  razasNombres.add(r.optString("name"));
-                  razasInfo.add(r.optString("description"));
-                }
-                ArrayAdapter<String> adapter =
-                    new ArrayAdapter<>(
-                        CrearPersonajeActivity.this,
-                        android.R.layout.simple_spinner_dropdown_item,
-                        razasNombres);
-                spinnerRaza.setAdapter(adapter);
-                catalogStatus.setText(
-                    cached
-                        ? "Catálogo guardado. Se necesita conexión para crear."
-                        : "Especies disponibles");
-                btnGuardar.setEnabled(!saving);
-                btnReintentar.setVisibility(View.GONE);
-                spinnerRaza.setOnItemSelectedListener(
-                    new AdapterView.OnItemSelectedListener() {
-                      public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
-                        txtRazaInfo.setText(razasInfo.get(pos));
-                        txtRazaInfo.setVisibility(View.VISIBLE);
-                      }
-
-                      public void onNothingSelected(AdapterView<?> p) {}
-                    });
-              }
-
-              public void error(String m, int code) {
-                if (isFinishing() || isDestroyed()) return;
-                catalogStatus.setText(m);
-                btnReintentar.setVisibility(View.VISIBLE);
-                btnGuardar.setEnabled(!saving && spinnerRaza.getSelectedItem() != null);
+    d = model.draft;
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+              public void handleOnBackPressed() {
+                goBack();
               }
             });
-  }
-
-  // Guardar por la API compartida y devolver resultado
-  private void guardarPersonaje() {
-    if (saving) return;
-    if (spinnerRaza.getSelectedItem() == null) {
-      Toast.makeText(this, "Cargá el catálogo 2024 antes de crear el personaje.", Toast.LENGTH_LONG)
-          .show();
-      return;
-    }
-    String nombre = editNombre.getText().toString().trim();
-    if (nombre.isEmpty()) {
-      Toast.makeText(this, "✦ Ingresá un nombre para el personaje", Toast.LENGTH_SHORT).show();
-      return;
-    }
-
-    String raza =
-        spinnerRaza.getSelectedItem() != null ? spinnerRaza.getSelectedItem().toString() : "Humano";
-    String clase = CLASES_SRD[spinnerClase.getSelectedItemPosition()];
-    String alineacion = ALINEACIONES[spinnerAlineacion.getSelectedItemPosition()];
-    int nivel = seekNivel.getProgress() + 1;
-
-    Map<String, Object> doc = new HashMap<>();
-    doc.put("name", nombre);
-    doc.put("race", raza);
-    doc.put("characterClass", clase);
-    doc.put("level", nivel);
-    doc.put("alignment", alineacion);
-    doc.put("strength", atributos[0]);
-    doc.put("dexterity", atributos[1]);
-    doc.put("constitution", atributos[2]);
-    doc.put("intelligence", atributos[3]);
-    doc.put("wisdom", atributos[4]);
-    doc.put("charisma", atributos[5]);
-
-    // Intent resultado (siempre, con o sin sesión)
-    Intent result = new Intent();
-    result.putExtra("personaje_nombre", nombre);
-    result.putExtra("personaje_raza", raza);
-    result.putExtra("personaje_clase", clase);
-    result.putExtra("personaje_nivel", nivel);
-    result.putExtra("personaje_alineacion", alineacion);
-    result.putExtra("personaje_fue", atributos[0]);
-    result.putExtra("personaje_des", atributos[1]);
-    result.putExtra("personaje_con", atributos[2]);
-    result.putExtra("personaje_int", atributos[3]);
-    result.putExtra("personaje_sab", atributos[4]);
-    result.putExtra("personaje_car", atributos[5]);
-
-    saving = true;
-    btnGuardar.setEnabled(false);
-    api.request(
-        "POST",
-        "/characters",
-        new JSONObject(doc),
-        new ApiClient.Callback() {
-          public void success(Object value) {
-            if (isFinishing()) return;
-            result.putExtra("personaje_id", ((JSONObject) value).optString("id"));
-            Toast.makeText(CrearPersonajeActivity.this, "Personaje guardado", Toast.LENGTH_SHORT)
-                .show();
-            setResult(RESULT_OK, result);
+    model.updates.observe(
+        this,
+        ignored -> {
+          if (model.createdId != null) {
+            finishCreated();
+            return;
+          }
+          if (model.errorStatus == 401) {
+            startActivity(
+                new Intent(this, LoginActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             finish();
+            return;
           }
-
-          public void failure(String message, int status) {
-            if (isFinishing()) return;
-            saving = false;
-            btnGuardar.setEnabled(true);
-            Toast.makeText(CrearPersonajeActivity.this, message, Toast.LENGTH_LONG).show();
-            if (status == 401) {
-              Intent login = new Intent(CrearPersonajeActivity.this, LoginActivity.class);
-              login.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-              startActivity(login);
-              finish();
-            }
-          }
+          if (root == null
+              || d.step == CharacterDraft.Step.SPECIES
+              || d.step == CharacterDraft.Step.REVIEW) render();
         });
+    if (!model.loaded && !model.loading) loadCatalog();
   }
 
-  private void refrescarAtributo(int idx) {
-    int val = atributos[idx];
-    txtAtributos[idx].setText(String.valueOf(val));
-    int mod = Math.floorDiv(val - 10, 2);
-    txtMods[idx].setText(mod >= 0 ? "(+" + mod + ")" : "(" + mod + ")");
-  }
-
-  private View labelSeccion(String titulo, String subtitulo) {
-    LinearLayout sec = new LinearLayout(this);
-    sec.setOrientation(LinearLayout.VERTICAL);
-    LinearLayout.LayoutParams lp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    lp.setMargins(0, dp(16), 0, dp(8));
-    sec.setLayoutParams(lp);
-
-    TextView tv = new TextView(this);
-    tv.setText(titulo);
-    tv.setTextColor(color(R.color.dorado));
-    tv.setTextSize(11);
-    tv.setTypeface(Typeface.create("serif", Typeface.BOLD));
-    tv.setLetterSpacing(0.06f);
-    LinearLayout.LayoutParams tvLp =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    tvLp.setMargins(dp(14), 0, dp(14), dp(4));
-    tv.setLayoutParams(tvLp);
-    sec.addView(tv);
-
-    if (subtitulo != null) {
-      TextView sv = new TextView(this);
-      sv.setText(subtitulo);
-      sv.setTextColor(color(R.color.texto_secundario));
-      sv.setTextSize(10);
-      LinearLayout.LayoutParams svLp =
-          new LinearLayout.LayoutParams(
-              LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-      svLp.setMargins(dp(14), 0, dp(14), dp(4));
-      sv.setLayoutParams(svLp);
-      sec.addView(sv);
-    }
-
-    View sep = new View(this);
-    sep.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-    sep.setBackgroundColor(color(R.color.dorado_borde));
-    sec.addView(sep);
-    return sec;
-  }
-
-  private View separadorDorado() {
-    View v = new View(this);
-    v.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-    v.setBackgroundColor(color(R.color.dorado_borde));
-    return v;
-  }
-
-  private LinearLayout.LayoutParams wrapMatch() {
-    return new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-  }
-
-  private String strip(String s) {
-    if (s == null) return "";
-    return s.replaceAll("\\*{1,3}", "").replaceAll("#+\\s", "").replaceAll("_", "").trim();
-  }
-
-  private String capitalize(String s) {
-    if (s == null || s.isEmpty()) return "";
-    return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-  }
-
-  private String fetchUrl(String urlStr) {
-    try {
-      URL url = new URL(urlStr);
-      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-      conn.setRequestMethod("GET");
-      conn.setConnectTimeout(10000);
-      conn.setReadTimeout(10000);
-      conn.setRequestProperty("Accept", "application/json");
-      BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-      StringBuilder sb = new StringBuilder();
-      String line;
-      while ((line = br.readLine()) != null) sb.append(line);
-      br.close();
-      return sb.toString();
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private int dp(int val) {
-    return Math.round(val * getResources().getDisplayMetrics().density);
-  }
-
-  private int color(int res) {
-    return androidx.core.content.ContextCompat.getColor(this, res);
+  protected void loadCatalog() {
+    model.load(GameRepository.get(this)::read);
   }
 
   @Override
-  protected void onDestroy() {
-    super.onDestroy();
-    executor.shutdownNow();
+  protected void onSaveInstanceState(Bundle state) {
+    state.putSerializable("creation_draft", d);
+    state.putBoolean("submission_pending", model.saving || model.uncertainSubmission);
+    super.onSaveInstanceState(state);
+  }
+
+  private void goBack() {
+    if (model.saving) return;
+    if (model.uncertainSubmission) {
+      finish();
+      return;
+    }
+    if (d.step == CharacterDraft.Step.SPECIES)
+      new AlertDialog.Builder(this)
+          .setTitle("¿Salir del creador?")
+          .setMessage("Se descartará este borrador.")
+          .setNegativeButton("Seguir creando", null)
+          .setPositiveButton("Salir", (a, b) -> finish())
+          .show();
+    else {
+      d.back();
+      render();
+    }
+  }
+
+  private void render() {
+    View focused = root != null && renderedStep == d.step ? focus(root) : null;
+    String focusKey = focused == null ? null : focusKey(focused);
+    boolean accessibilityFocus = focused != null && focused.isAccessibilityFocused();
+    int scrollY = currentScroll != null && renderedStep == d.step ? currentScroll.getScrollY() : 0;
+    renderedStep = d.step;
+    root = new LinearLayout(this);
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setBackgroundColor(getColor(R.color.fondo));
+    ViewCompat.setOnApplyWindowInsetsListener(
+        root,
+        (v, insets) -> {
+          androidx.core.graphics.Insets bars =
+              insets.getInsets(
+                  WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+          v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+          return insets;
+        });
+    root.addView(text("CREAR PERSONAJE · " + (d.step.ordinal() + 1) + " de 8", 14));
+    root.addView(text(TITLES[d.step.ordinal()], 24));
+    ScrollView scroll = new ScrollView(this);
+    currentScroll = scroll;
+    body = new LinearLayout(this);
+    body.setOrientation(LinearLayout.VERTICAL);
+    body.setPadding(dp(16), dp(8), dp(16), dp(16));
+    scroll.addView(body);
+    root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    switch (d.step) {
+      case SPECIES:
+        species();
+        break;
+      case CLASS:
+        classes();
+        break;
+      case METHOD:
+        methods();
+        break;
+      case ALLOCATION:
+        allocation();
+        break;
+      case SPECIES_GUIDE:
+        speciesGuide();
+        break;
+      case CLASS_GUIDE:
+        classGuide();
+        break;
+      case IDENTITY:
+        identity();
+        break;
+      case REVIEW:
+        review();
+        break;
+    }
+    LinearLayout footer = new LinearLayout(this);
+    footer.setPadding(dp(12), 0, dp(12), dp(8));
+    Button back = button("Atrás", this::goBack);
+    footer.addView(back, new LinearLayout.LayoutParams(0, -2, 1));
+    next =
+        button(
+            model.saving
+                ? "Guardando…"
+                : d.step == CharacterDraft.Step.REVIEW ? "Crear personaje" : "Continuar",
+            () -> {
+              if (d.step == CharacterDraft.Step.REVIEW)
+                model.save(
+                    (json, callback) ->
+                        ApiClient.get(getApplicationContext())
+                            .request("POST", "/characters", json, callback));
+              else {
+                d.next();
+                render();
+              }
+            });
+    footer.addView(next, new LinearLayout.LayoutParams(0, -2, 2));
+    root.addView(footer);
+    next.setEnabled(d.canAdvance() && !model.saving && !model.uncertainSubmission);
+    if (model.saving) enable(root, false);
+    setContentView(root);
+    ViewCompat.requestApplyInsets(root);
+    scroll.post(
+        () -> {
+          View target = focusKey == null ? null : matchingFocus(root, focusKey);
+          if (target != null) {
+            if (accessibilityFocus)
+              target.performAccessibilityAction(
+                  android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS,
+                  null);
+            else target.requestFocus();
+          }
+          scroll.scrollTo(0, scrollY);
+        });
+  }
+
+  private void species() {
+    body.addView(
+        text(
+            "Tu especie define tus rasgos naturales. Podés consultar los detalles antes de elegir.",
+            16));
+    if (!model.catalogMessage.isEmpty()) body.addView(text(model.catalogMessage, 14));
+    if (!model.loading) body.addView(button("Actualizar especies", this::loadCatalog));
+    for (JSONObject row : model.species) {
+      String key = CreationViewModel.key(row), name = row.optString("name");
+      body.addView(
+          button(
+              (key.equals(d.speciesKey) ? "✓ " : "") + name,
+              () -> {
+                d.speciesKey = key;
+                d.speciesName = name;
+                d.speciesDescription = row.optString("description");
+                render();
+              }));
+    }
+    if (!d.speciesKey.isEmpty()) details("Detalles de " + d.speciesName, d.speciesDescription);
+  }
+
+  private void classes() {
+    body.addView(
+        text(
+            "Elegí cómo querés afrontar la aventura. Después veremos los rasgos de tu clase.", 16));
+    for (int i = 0; i < CharacterDraft.CLASSES.length; i++) {
+      final int index = i;
+      body.addView(
+          button(
+              (d.classIndex == i ? "✓ " : "") + CharacterDraft.CLASSES[i],
+              () -> {
+                d.classIndex = index;
+                render();
+              }));
+    }
+  }
+
+  private void methods() {
+    choice("Valores estándar", "Asigná 15, 14, 13, 12, 10 y 8.", AbilityScores.Method.STANDARD);
+    choice(
+        "Compra de puntos",
+        "Repartí 27 puntos. Cada atributo empieza en 8 y llega hasta 15.",
+        AbilityScores.Method.POINT_BUY);
+    choice(
+        "Tiradas",
+        "Seis tiradas de 4d6; se descarta el dado menor de cada una.",
+        AbilityScores.Method.ROLL);
+    body.addView(
+        text(
+            "Atributos base · En D&D 2024, los aumentos de atributos dependen del trasfondo, no de"
+                + " la especie. La revisión del trasfondo queda pendiente.",
+            14));
+  }
+
+  private void choice(String title, String description, AbilityScores.Method method) {
+    body.addView(
+        button(
+            (d.abilities.method == method ? "✓ " : "") + title,
+            () -> {
+              d.abilities.method = method;
+              render();
+            }));
+    body.addView(text(description, 16));
+  }
+
+  private void allocation() {
+    AbilityScores a = d.abilities;
+    body.addView(
+        text("Prioridad de " + CharacterDraft.CLASSES[d.classIndex] + ": " + priority() + ".", 16));
+    if (a.method == AbilityScores.Method.POINT_BUY) {
+      body.addView(text("Puntos disponibles: " + a.remaining() + " de 27", 18));
+      body.addView(
+          button(
+              "Distribución equilibrada",
+              () -> {
+                a.balanced();
+                render();
+              }));
+      details(
+          "Costo de los valores",
+          "8: 0 · 9: 1 · 10: 2 · 11: 3 · 12: 4 · 13: 5 · 14: 7 · 15: 9 puntos. Gastá los 27 puntos"
+              + " para continuar.");
+    } else if (a.method == AbilityScores.Method.ROLL) {
+      body.addView(
+          button(
+              a.hasRolls() ? "Volver a tirar" : "Tirar los dados",
+              () -> {
+                if (!a.hasRolls()) {
+                  a.roll(new Random());
+                  render();
+                } else
+                  new AlertDialog.Builder(this)
+                      .setTitle("¿Reemplazar las seis tiradas?")
+                      .setMessage(
+                          "Se perderán los dados y sus asignaciones. Consultá con tu DM antes de"
+                              + " repetir.")
+                      .setNegativeButton("Conservar", null)
+                      .setPositiveButton(
+                          "Volver a tirar",
+                          (dialog, which) -> {
+                            a.roll(new Random());
+                            render();
+                          })
+                      .show();
+              }));
+      if (!a.hasRolls()) {
+        body.addView(text("Tirá una vez y asigná cada resultado a un atributo.", 16));
+        return;
+      }
+      StringBuilder rolls = new StringBuilder();
+      for (int i = 0; i < 6; i++)
+        rolls
+            .append("Tirada ")
+            .append(i + 1)
+            .append(": ")
+            .append(Arrays.toString(a.dice(i)))
+            .append(" → ")
+            .append(a.pool(i))
+            .append("\n");
+      details("Ver los dados (se descarta el menor)", rolls.toString());
+    }
+    if (a.method != AbilityScores.Method.POINT_BUY)
+      body.addView(
+          text(
+              "Cada resultado se usa una vez. Elegir uno ocupado intercambia las asignaciones.",
+              14));
+    for (int i = 0; i < 6; i++) {
+      final int ability = i;
+      int value = a.score(i);
+      body.addView(
+          text(
+              CharacterDraft.ABILITIES[i]
+                  + (value == 0
+                      ? " · sin asignar"
+                      : " · "
+                          + value
+                          + " ("
+                          + String.format(
+                              java.util.Locale.ROOT, "%+d", AbilityScores.modifier(value))
+                          + ")"),
+              18));
+      if (a.method == AbilityScores.Method.POINT_BUY) {
+        LinearLayout row = new LinearLayout(this);
+        Button minus =
+            button(
+                "−",
+                () -> {
+                  a.adjust(ability, -1);
+                  render();
+                });
+        minus.setContentDescription("Reducir " + CharacterDraft.ABILITIES[i]);
+        minus.setEnabled(value > 8);
+        Button plus =
+            button(
+                "+",
+                () -> {
+                  a.adjust(ability, 1);
+                  render();
+                });
+        plus.setContentDescription("Aumentar " + CharacterDraft.ABILITIES[i]);
+        plus.setEnabled(value < 15 && a.remaining() >= (value >= 13 ? 2 : 1));
+        row.addView(minus, new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(plus, new LinearLayout.LayoutParams(0, -2, 1));
+        body.addView(row);
+      } else {
+        String[] entries = new String[7];
+        entries[0] = "Sin asignar";
+        for (int j = 0; j < 6; j++) entries[j + 1] = "Resultado " + (j + 1) + ": " + a.pool(j);
+        Spinner spinner =
+            spinner(
+                entries,
+                a.assigned(i) + 1,
+                position -> {
+                  if (a.assigned(ability) != position - 1) {
+                    a.assign(ability, position - 1);
+                    render();
+                  }
+                });
+        spinner.setContentDescription("Asignar " + CharacterDraft.ABILITIES[i]);
+        body.addView(spinner);
+      }
+    }
+  }
+
+  private String priority() {
+    return new String[] {
+          "Fuerza",
+          "Carisma",
+          "Sabiduría",
+          "Sabiduría",
+          "Fuerza o Destreza",
+          "Inteligencia",
+          "Destreza y Sabiduría",
+          "Fuerza y Carisma",
+          "Destreza y Sabiduría",
+          "Destreza",
+          "Carisma",
+          "Carisma"
+        }
+        [d.classIndex];
+  }
+
+  private void speciesGuide() {
+    body.addView(text(d.speciesName, 22));
+    body.addView(
+        text(
+            "Revisá sus rasgos: sentidos, velocidad y capacidades especiales. Los detalles del"
+                + " catálogo te ayudan a conocerla.",
+            16));
+    details("Consultar rasgos de la especie", d.speciesDescription);
+    body.addView(
+        text(
+            "Este paso es una guía. Las elecciones de rasgos no se asignan aquí. Después de crear,"
+                + " revisá el manual con tu DM y completá la ficha.",
+            14));
+  }
+
+  private void classGuide() {
+    body.addView(text(CharacterDraft.CLASSES[d.classIndex] + " · prioridad: " + priority(), 22));
+    String[] guides = {
+      "La Furia potencia tu combate y tu resistencia. Revisá sus usos y condiciones, la Defensa sin"
+          + " armadura y las maestrías de armas.",
+      "La Inspiración bárdica ayuda a tus aliados. Revisá sus usos, tus competencias y los trucos y"
+          + " conjuros que preparás.",
+      "Tu magia usa Sabiduría. Revisá tus conjuros preparados y la elección de Orden divina de"
+          + " nivel 1.",
+      "Tu magia usa Sabiduría. Revisá tus trucos, conjuros preparados y la elección de Orden"
+          + " primigenia de nivel 1.",
+      "Revisá tu estilo de combate, Segundo aliento y las maestrías de armas. Fuerza o Destreza"
+          + " dependerá de tus armas.",
+      "Tu magia usa Inteligencia. A nivel 1, elegís 3 trucos y tu libro contiene 6 conjuros de"
+          + " nivel 1. Preparás 4 de esos conjuros y tenés 2 espacios de nivel 1. Revisá también"
+          + " Recuperación arcana y Adepto ritual.",
+      "Artes marciales usa tus ataques sin armas y armas de monje. Revisá Defensa sin armadura;"
+          + " Destreza y Sabiduría son importantes.",
+      "Revisá Imposición de manos, tus conjuros y las maestrías de armas. Fuerza ayuda en combate y"
+          + " Carisma a tu magia.",
+      "Revisá Enemigo predilecto, tus conjuros y las maestrías de armas. Destreza y Sabiduría"
+          + " orientan tus capacidades.",
+      "Ataque furtivo requiere condiciones concretas. Revisá Pericia, Jerga de ladrones y las"
+          + " maestrías de armas.",
+      "Tu magia usa Carisma. Revisá los trucos, conjuros preparados y Hechicería innata de nivel"
+          + " 1.",
+      "Tu magia usa Carisma. Magia de pacto tiene espacios que recuperás con un descanso corto o"
+          + " largo. Revisá tus conjuros e Invocaciones sobrenaturales."
+    };
+    body.addView(text(guides[d.classIndex], 17));
+    body.addView(
+        text(
+            "Guía de nivel 1 · D&D 2024. Este creador guarda la ficha base; las elecciones de"
+                + " conjuros, competencias y rasgos quedan para completar después. Para niveles"
+                + " superiores, consultá la progresión de tu clase.",
+            14));
+  }
+
+  private void identity() {
+    body.addView(text("Nombre", 18));
+    EditText name = new EditText(this);
+    name.setSingleLine(true);
+    name.setHint("Nombre del personaje");
+    name.setTextColor(getColor(R.color.texto));
+    name.setHintTextColor(getColor(R.color.texto_secundario));
+    name.setText(d.name);
+    name.setFilters(
+        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(160)});
+    body.addView(name);
+    name.addTextChangedListener(
+        new TextWatcher() {
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+            d.name = s.toString();
+            next.setEnabled(d.canAdvance());
+          }
+
+          public void afterTextChanged(Editable e) {}
+        });
+    body.addView(text("Alineación", 18));
+    body.addView(spinner(CharacterDraft.ALIGNMENTS, d.alignment, value -> d.alignment = value));
+    body.addView(text("Nivel (1 para empezar)", 18));
+    String[] levels = new String[20];
+    for (int i = 0; i < 20; i++) levels[i] = String.valueOf(i + 1);
+    body.addView(spinner(levels, d.level - 1, value -> d.level = value + 1));
+  }
+
+  private void review() {
+    if (model.uncertainSubmission) {
+      body.addView(
+          text(
+              "No pudimos confirmar el guardado. El personaje puede haberse creado. Volvé a la"
+                  + " ficha y comprobá el último personaje antes de crear otro.",
+              18));
+      body.addView(button("Volver a la ficha", this::finish));
+    }
+    body.addView(text(d.name.trim(), 24));
+    body.addView(
+        text(
+            d.speciesName
+                + " · "
+                + CharacterDraft.CLASSES[d.classIndex]
+                + " · Nivel "
+                + d.level
+                + "\n"
+                + CharacterDraft.ALIGNMENTS[d.alignment],
+            18));
+    for (int i = 0; i < 6; i++)
+      body.addView(text(CharacterDraft.ABILITIES[i] + ": " + d.abilities.score(i), 16));
+    body.addView(
+        text(
+            "Se guardarán tu identidad y tus atributos base. Después, usá Completar ficha para PV,"
+                + " competencias y recursos. Revisá también tu trasfondo, rasgos y conjuros con el"
+                + " manual.",
+            16));
+    if (!model.saveError.isEmpty()) body.addView(text(model.saveError, 16));
+  }
+
+  private void finishCreated() {
+    Intent result = new Intent();
+    result.putExtra("personaje_id", model.createdId);
+    result.putExtra("personaje_nombre", d.name.trim());
+    result.putExtra("personaje_raza", d.speciesName);
+    result.putExtra("personaje_clase", CharacterDraft.CLASSES[d.classIndex]);
+    result.putExtra("personaje_nivel", d.level);
+    result.putExtra("personaje_alineacion", CharacterDraft.ALIGNMENTS[d.alignment]);
+    String[] keys = {"fue", "des", "con", "int", "sab", "car"};
+    for (int i = 0; i < 6; i++) result.putExtra("personaje_" + keys[i], d.abilities.score(i));
+    setResult(RESULT_OK, result);
+    finish();
+  }
+
+  private void details(String label, String content) {
+    TextView detail =
+        text(content.isEmpty() ? "No hay detalles disponibles en el catálogo." : content, 16);
+    detail.setVisibility(View.GONE);
+    body.addView(
+        button(
+            label,
+            () ->
+                detail.setVisibility(
+                    detail.getVisibility() == View.GONE ? View.VISIBLE : View.GONE)));
+    body.addView(detail);
+  }
+
+  private TextView text(String value, int size) {
+    TextView t = new TextView(this);
+    t.setText(value);
+    t.setTextSize(size);
+    t.setTextColor(getColor(R.color.texto));
+    t.setPadding(dp(12), dp(10), dp(12), dp(10));
+    return t;
+  }
+
+  private Button button(String title, Runnable action) {
+    Button b = new Button(this);
+    b.setText(title);
+    b.setAllCaps(false);
+    b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.boton_bg)));
+    b.setMinHeight(dp(48));
+    b.setTextColor(getColor(R.color.dorado_claro));
+    b.setOnClickListener(v -> action.run());
+    return b;
+  }
+
+  private interface Selection {
+    void set(int value);
+  }
+
+  private Spinner spinner(String[] values, int selected, Selection action) {
+    Spinner s = new Spinner(this);
+    s.setMinimumHeight(dp(48));
+    ArrayAdapter<String> adapter =
+        new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, values);
+    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    s.setAdapter(adapter);
+    s.setSelection(selected);
+    s.setOnItemSelectedListener(
+        new AdapterView.OnItemSelectedListener() {
+          public void onItemSelected(AdapterView<?> p, View v, int position, long id) {
+            action.set(position);
+          }
+
+          public void onNothingSelected(AdapterView<?> p) {}
+        });
+    return s;
+  }
+
+  private void enable(View view, boolean enabled) {
+    view.setEnabled(enabled);
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+        enable(((ViewGroup) view).getChildAt(i), enabled);
+  }
+
+  private View focus(View view) {
+    if (view.isAccessibilityFocused() || view.isFocused()) return view;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+        View found = focus(((ViewGroup) view).getChildAt(i));
+        if (found != null) return found;
+      }
+    return null;
+  }
+
+  private String focusKey(View view) {
+    if (view.getContentDescription() != null) return view.getContentDescription().toString();
+    return view instanceof Button ? ((Button) view).getText().toString() : null;
+  }
+
+  private View matchingFocus(View view, String key) {
+    if (key.equals(focusKey(view))) return view;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+        View found = matchingFocus(((ViewGroup) view).getChildAt(i), key);
+        if (found != null) return found;
+      }
+    return null;
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
   }
 }
