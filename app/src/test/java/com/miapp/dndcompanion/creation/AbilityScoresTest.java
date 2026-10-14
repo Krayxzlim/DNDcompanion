@@ -70,6 +70,48 @@ public class AbilityScoresTest {
   }
 
   @Test
+  public void recommendationsRespectOrderAndEveryMethodsPool() {
+    int[] order = {3, 2, 1, 4, 5, 0};
+    AbilityScores a = new AbilityScores();
+    for (AbilityScores.Method method : AbilityScores.Method.values()) {
+      a.method = method;
+      if (method == AbilityScores.Method.ROLL) a.roll(new Random(72));
+      int[] before = new int[6];
+      if (method != AbilityScores.Method.POINT_BUY)
+        for (int i = 0; i < 6; i++) before[i] = a.pool(i);
+      assertTrue(a.recommend(order));
+      assertTrue(a.complete());
+      for (int i = 1; i < 6; i++) assertTrue(a.score(order[i - 1]) >= a.score(order[i]));
+      if (method == AbilityScores.Method.POINT_BUY) assertEquals(0, a.remaining());
+      else for (int i = 0; i < 6; i++) assertEquals(before[i], a.pool(i));
+      int previous = a.score(0);
+      assertFalse(a.recommend(new int[] {0, 0, 1, 2, 3, 4}));
+      assertEquals(previous, a.score(0));
+    }
+  }
+
+  @Test
+  public void recommendationKeepsDuplicateSlotsDistinctAndManualSwapAvailable() {
+    AbilityScores a = new AbilityScores();
+    a.method = AbilityScores.Method.ROLL;
+    assertFalse(a.recommend(new int[] {0, 1, 2, 3, 4, 5}));
+    a.roll(
+        new Random() {
+          public int nextInt(int bound) {
+            return 2;
+          }
+        });
+    assertTrue(a.recommend(new int[] {3, 2, 1, 4, 5, 0}));
+    Set<Integer> slots = new HashSet<>();
+    for (int i = 0; i < 6; i++) slots.add(a.assigned(i));
+    assertEquals(6, slots.size());
+    assertEquals(3, a.ownerOf(0));
+    a.assign(0, 0);
+    assertEquals(0, a.ownerOf(0));
+    assertTrue(a.complete());
+  }
+
+  @Test
   public void modifiersRoundDown() {
     assertEquals(-4, AbilityScores.modifier(3));
     assertEquals(-1, AbilityScores.modifier(9));

@@ -67,6 +67,48 @@ public class CreationViewModelTest {
   }
 
   @Test
+  public void catalogRefreshAndClassChangeNeverApplyRecommendation() throws Exception {
+    CreationViewModel model = new CreationViewModel();
+    model.draft.classIndex = 5;
+    model.draft.abilities.method = AbilityScores.Method.POINT_BUY;
+    model.draft.abilities.balanced();
+    com.miapp.dndcompanion.fragua.GameRepository.Result[] result =
+        new com.miapp.dndcompanion.fragua.GameRepository.Result[1];
+    model.loadCreation(
+        (path, callback) -> {
+          assertEquals("/catalog/creation", path);
+          result[0] = callback;
+        });
+    JSONObject catalog =
+        new JSONObject(
+            "{ruleset:'srd-2024',version:1,classes:[{name:'Mago',recommendedOrder:['intelligence','constitution','dexterity','wisdom','charisma','strength']},{name:'Bárbaro',recommendedOrder:['strength','constitution','dexterity','wisdom','charisma','intelligence']}]}");
+    result[0].ok(catalog, true, 0);
+    assertEquals(3, model.recommendedOrder()[0]);
+    assertEquals(13, model.draft.abilities.score(0));
+    model.draft.classIndex = 0;
+    result[0].ok(catalog, false, 1);
+    assertEquals(0, model.recommendedOrder()[0]);
+    assertEquals(13, model.draft.abilities.score(0));
+    result[0].error("offline", 0);
+    assertNotNull(model.selectedClass());
+    assertEquals(0, model.draft.abilities.remaining());
+  }
+
+  @Test
+  public void unavailableOrInvalidCreationCatalogDoesNotBlockDraft() throws Exception {
+    CreationViewModel model = new CreationViewModel();
+    model.draft.classIndex = 5;
+    model.loadCreation((path, callback) -> callback.error("Not found", 404));
+    assertNull(model.recommendedOrder());
+    model.draft.step = CharacterDraft.Step.CLASS;
+    assertTrue(model.draft.canAdvance());
+    model.creation =
+        new JSONObject(
+            "{classes:[{name:'Mago',recommendedOrder:['strength','strength','dexterity','wisdom','charisma','intelligence']}]}");
+    assertNull(model.recommendedOrder());
+  }
+
+  @Test
   public void catalogFailureNeverMarksSubmissionUncertainAndAuthExpires() {
     CreationViewModel model = new CreationViewModel();
     com.miapp.dndcompanion.fragua.GameRepository.Result[] callback =

@@ -13,6 +13,81 @@ public final class CreationViewModel extends ViewModel {
   public final MutableLiveData<Integer> updates = new MutableLiveData<>(0);
   public final List<JSONObject> species = new ArrayList<>();
   public boolean loading, saving, loaded, uncertainSubmission;
+  public boolean creationLoading, creationLoaded;
+  public JSONObject creation;
+  public String creationMessage = "";
+
+  public JSONObject selectedClass() {
+    if (creation == null
+        || draft.classIndex < 0
+        || draft.classIndex >= CharacterDraft.CLASSES.length) return null;
+    JSONArray rows = creation.optJSONArray("classes");
+    if (rows != null)
+      for (int i = 0; i < rows.length(); i++) {
+        JSONObject row = rows.optJSONObject(i);
+        if (row != null && CharacterDraft.CLASSES[draft.classIndex].equals(row.optString("name")))
+          return row;
+      }
+    return null;
+  }
+
+  public int[] recommendedOrder() {
+    JSONObject row = selectedClass();
+    JSONArray order = row == null ? null : row.optJSONArray("recommendedOrder");
+    if (order == null || order.length() != 6) return null;
+    int[] result = new int[6];
+    boolean[] seen = new boolean[6];
+    for (int i = 0; i < 6; i++) {
+      int index = abilityIndex(order.optString(i));
+      if (index < 0 || seen[index]) return null;
+      seen[index] = true;
+      result[i] = index;
+    }
+    return result;
+  }
+
+  public static int abilityIndex(String key) {
+    for (int i = 0; i < CharacterDraft.KEYS.length; i++)
+      if (CharacterDraft.KEYS[i].equals(key)) return i;
+    return -1;
+  }
+
+  public void loadCreation(Catalog repository) {
+    if (creationLoading) return;
+    creationLoading = true;
+    creationMessage = "Cargando información de clases…";
+    changed();
+    repository.read(
+        "/catalog/creation",
+        new GameRepository.Result() {
+          public void ok(Object data, boolean cached, long at) {
+            JSONObject value = data instanceof JSONObject ? (JSONObject) data : null;
+            if (value == null
+                || !"srd-2024".equals(value.optString("ruleset"))
+                || value.optInt("version") != 1
+                || value.optJSONArray("classes") == null) {
+              error("Información de clases no disponible.", 502);
+              return;
+            }
+            creation = value;
+            creationLoaded = true;
+            creationLoading = cached;
+            creationMessage = cached ? "Información guardada · actualizando…" : "";
+            changed();
+          }
+
+          public void error(String message, int status) {
+            creationLoading = false;
+            creationMessage =
+                creation == null
+                    ? "Información de clases no disponible. Podés continuar o reintentar."
+                    : "Mostrando información guardada. No se pudo actualizar.";
+            if (status == 401) errorStatus = status;
+            changed();
+          }
+        });
+  }
+
   public String catalogMessage = "", saveError = "", createdId;
   public int errorStatus;
 

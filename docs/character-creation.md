@@ -32,3 +32,11 @@ Para comprobar el flujo con la API real:
 4. Revisar las guías y completar el nombre. Comparar el resumen con los valores elegidos.
 5. Crear el personaje. Comprobar la ficha recibida y volver a abrir la app para comprobar los datos guardados.
 6. Probar un fallo de conexión y reintentar sin perder las elecciones.
+
+## Información contextual y recomendaciones
+
+Especie y clase usan selectores desplegables. Solo se muestra el panel de la selección actual; los detalles extensos se abren a pedido. El catálogo de clases de `GET /catalog/creation` v1 aporta prioridades, dado de golpe, salvaciones y rasgos disponibles de nivel 1. Su fuente es SRD 2024, no el manual completo ni un motor de progresión.
+
+Los atributos se editan en filas horizontales. Cada resultado de tirada conserva su identidad, aunque varios tengan el mismo valor, y el desplegable indica dónde está usado. La recomendación de clase es opcional y editable: cargar el catálogo o cambiar de clase nunca reemplaza el reparto. En compra propone un arreglo que cuesta 27 puntos; en estándar y tiradas ordena los valores disponibles.
+
+Esta versión requiere el catálogo nuevo para mostrar recomendaciones. Si no está disponible, ofrece reintentar y conserva el flujo base. El endpoint de preview del backend queda preparado para la futura integración de decisiones persistidas; este cliente todavía no lo utiliza.

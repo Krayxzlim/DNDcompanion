@@ -143,6 +143,91 @@ public class CreationActivityTest {
     c.pause().stop().destroy();
   }
 
+  @Test
+  public void catalogAndClassChangesRequireExplicitRecommendation() throws Exception {
+    CharacterDraft d = draft();
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    try (InputStream in = getClass().getResourceAsStream("/creation-catalog.json")) {
+      model.creation =
+          new org.json.JSONObject(
+              new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+    }
+    model.creationLoaded = true;
+    model.changed();
+    assertEquals(13, d.abilities.score(0));
+    assertNotNull(find(c.get(), "Aplicar recomendación de Mago"));
+    d.step = CharacterDraft.Step.CLASS;
+    model.changed();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar clase").setSelection(2);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals(1, d.classIndex);
+    assertEquals(13, d.abilities.score(0));
+    find(c.get(), "Continuar").performClick();
+    find(c.get(), "Continuar").performClick();
+    find(c.get(), "Aplicar recomendación de Bardo").performClick();
+    assertEquals(15, d.abilities.score(5));
+    assertEquals(8, d.abilities.score(0));
+    assertEquals(0, d.abilities.remaining());
+    d.step = CharacterDraft.Step.CLASS;
+    model.changed();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar clase").setSelection(0);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals(-1, d.classIndex);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    assertEquals(15, d.abilities.score(5));
+    c.pause().stop().destroy();
+  }
+
+  @Test
+  public void allocationExplainsMissingCatalogAndOffersRetry() {
+    ActivityController<OfflineActivity> c = start(draft());
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    model.creationMessage = "Información de clases no disponible. Podés continuar o reintentar.";
+    model.changed();
+    assertNotNull(find(c.get(), model.creationMessage));
+    assertNotNull(find(c.get(), "Reintentar información de clases"));
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    c.pause().stop().destroy();
+  }
+
+  @Test
+  public void speciesPanelFollowsSelectionAndPlaceholderClearsIt() throws Exception {
+    CharacterDraft d = new CharacterDraft();
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    model.species.add(
+        new org.json.JSONObject()
+            .put("key", "elf")
+            .put("name", "Elfo")
+            .put("size", "Mediano")
+            .put("speed", "30 pies"));
+    model.species.add(
+        new org.json.JSONObject()
+            .put("key", "gnome")
+            .put("name", "Gnomo")
+            .put("size", "Pequeño")
+            .put("speed", "30 pies"));
+    model.changed();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar especie").setSelection(1);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertNotNull(find(c.get(), "Tamaño: Mediano"));
+    assertNull(find(c.get(), "Tamaño: Pequeño"));
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar especie").setSelection(2);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertNotNull(find(c.get(), "Tamaño: Pequeño"));
+    assertNull(find(c.get(), "Tamaño: Mediano"));
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar especie").setSelection(0);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals("", d.speciesKey);
+    assertNull(find(c.get(), "Tamaño: Pequeño"));
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    c.pause().stop().destroy();
+  }
+
   private Spinner spinner(View v, String description) {
     if (v instanceof Spinner && description.contentEquals(v.getContentDescription()))
       return (Spinner) v;

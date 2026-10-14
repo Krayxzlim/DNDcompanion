@@ -17,6 +17,7 @@ import com.miapp.dndcompanion.creation.*;
 import com.miapp.dndcompanion.fragua.GameRepository;
 import com.miapp.dndcompanion.network.ApiClient;
 import java.util.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class CrearPersonajeActivity extends AppCompatActivity {
@@ -74,6 +75,10 @@ public class CrearPersonajeActivity extends AppCompatActivity {
           }
           if (root == null
               || d.step == CharacterDraft.Step.SPECIES
+              || d.step == CharacterDraft.Step.CLASS
+              || d.step == CharacterDraft.Step.ALLOCATION
+              || d.step == CharacterDraft.Step.SPECIES_GUIDE
+              || d.step == CharacterDraft.Step.CLASS_GUIDE
               || d.step == CharacterDraft.Step.REVIEW) render();
         });
     if (!model.loaded && !model.loading) loadCatalog();
@@ -81,6 +86,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
 
   protected void loadCatalog() {
     model.load(GameRepository.get(this)::read);
+    model.loadCreation(GameRepository.get(this)::read);
   }
 
   @Override
@@ -203,41 +209,146 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void species() {
-    body.addView(
-        text(
-            "Tu especie define tus rasgos naturales. Podés consultar los detalles antes de elegir.",
-            16));
+    body.addView(text("Elegí tu especie para conocer sus rasgos.", 16));
     if (!model.catalogMessage.isEmpty()) body.addView(text(model.catalogMessage, 14));
     if (!model.loading) body.addView(button("Actualizar especies", this::loadCatalog));
-    for (JSONObject row : model.species) {
-      String key = CreationViewModel.key(row), name = row.optString("name");
-      body.addView(
-          button(
-              (key.equals(d.speciesKey) ? "✓ " : "") + name,
-              () -> {
-                d.speciesKey = key;
-                d.speciesName = name;
-                d.speciesDescription = row.optString("description");
-                render();
-              }));
+    List<JSONObject> options = new ArrayList<>(model.species);
+    int selected = 0;
+    for (int i = 0; i < options.size(); i++)
+      if (CreationViewModel.key(options.get(i)).equals(d.speciesKey)) selected = i + 1;
+    if (selected == 0 && !d.speciesKey.isEmpty()) {
+      JSONObject saved = new JSONObject();
+      try {
+        saved
+            .put("key", d.speciesKey)
+            .put("name", d.speciesName)
+            .put("description", d.speciesDescription);
+      } catch (org.json.JSONException ignored) {
+      }
+      options.add(saved);
+      selected = options.size();
     }
-    if (!d.speciesKey.isEmpty()) details("Detalles de " + d.speciesName, d.speciesDescription);
+    String[] names = new String[options.size() + 1];
+    names[0] = "Seleccioná una especie";
+    for (int i = 0; i < options.size(); i++) names[i + 1] = options.get(i).optString("name");
+    Spinner selector =
+        spinner(
+            names,
+            selected,
+            position -> {
+              if (position == 0) {
+                if (!d.speciesKey.isEmpty()) {
+                  d.speciesKey = "";
+                  d.speciesName = "";
+                  d.speciesDescription = "";
+                  render();
+                }
+                return;
+              }
+              JSONObject row = options.get(position - 1);
+              if (CreationViewModel.key(row).equals(d.speciesKey)) return;
+              d.speciesKey = CreationViewModel.key(row);
+              d.speciesName = row.optString("name");
+              d.speciesDescription = row.optString("description");
+              render();
+            });
+    selector.setContentDescription("Seleccionar especie");
+    body.addView(selector);
+    if (!d.speciesKey.isEmpty()) speciesContext();
+  }
+
+  private void speciesContext() {
+    JSONObject selected = null;
+    for (JSONObject row : model.species)
+      if (CreationViewModel.key(row).equals(d.speciesKey)) selected = row;
+    body.addView(text(d.speciesName, 22));
+    if (selected == null) {
+      details("Detalles de " + d.speciesName, d.speciesDescription);
+      return;
+    }
+    String size = selected.optString("size"), speed = selected.optString("speed");
+    if (!size.isEmpty()) body.addView(text("Tamaño: " + size, 16));
+    if (!speed.isEmpty()) body.addView(text("Velocidad: " + speed, 16));
+    details("Descripción de " + d.speciesName, selected.optString("description"));
+    JSONArray traits = selected.optJSONArray("traits");
+    if (traits != null)
+      for (int i = 0; i < traits.length(); i++) {
+        JSONObject trait = traits.optJSONObject(i);
+        if (trait != null
+            && !"SIZE".equals(trait.optString("type"))
+            && !"SPEED".equals(trait.optString("type")))
+          details(trait.optString("name"), trait.optString("description"));
+      }
+    provenance(selected);
   }
 
   private void classes() {
-    body.addView(
-        text(
-            "Elegí cómo querés afrontar la aventura. Después veremos los rasgos de tu clase.", 16));
-    for (int i = 0; i < CharacterDraft.CLASSES.length; i++) {
-      final int index = i;
-      body.addView(
-          button(
-              (d.classIndex == i ? "✓ " : "") + CharacterDraft.CLASSES[i],
-              () -> {
-                d.classIndex = index;
-                render();
-              }));
+    body.addView(text("Elegí cómo querés afrontar la aventura.", 16));
+    String[] names = new String[CharacterDraft.CLASSES.length + 1];
+    names[0] = "Seleccioná una clase";
+    System.arraycopy(CharacterDraft.CLASSES, 0, names, 1, CharacterDraft.CLASSES.length);
+    Spinner selector =
+        spinner(
+            names,
+            d.classIndex + 1,
+            position -> {
+              if (d.classIndex == position - 1) return;
+              d.classIndex = position - 1;
+              render();
+            });
+    selector.setContentDescription("Seleccionar clase");
+    body.addView(selector);
+    catalogStatus();
+    if (d.classIndex >= 0) classContext(false);
+  }
+
+  private void catalogStatus() {
+    if (!model.creationMessage.isEmpty()) body.addView(text(model.creationMessage, 14));
+    if (!model.creationLoading && (!model.creationLoaded || !model.creationMessage.isEmpty()))
+      body.addView(button("Reintentar información de clases", this::loadCatalog));
+  }
+
+  private String abilities(JSONArray keys) {
+    List<String> labels = new ArrayList<>();
+    if (keys != null)
+      for (int i = 0; i < keys.length(); i++) {
+        int index = CreationViewModel.abilityIndex(keys.optString(i));
+        if (index >= 0) labels.add(CharacterDraft.ABILITIES[index]);
+      }
+    return android.text.TextUtils.join(", ", labels);
+  }
+
+  private void provenance(JSONObject row) {
+    String source = row.optString("source");
+    if (!source.isEmpty())
+      details("Fuente del catálogo", source + " · El texto original puede estar en inglés.");
+  }
+
+  private void classContext(boolean guide) {
+    body.addView(text(CharacterDraft.CLASSES[d.classIndex], 22));
+    JSONObject row = model.selectedClass();
+    if (row == null) {
+      body.addView(text("Información de esta clase no disponible. Podés continuar.", 16));
+      return;
     }
+    body.addView(text(row.optString("description"), 16));
+    body.addView(
+        text("Atributos principales: " + abilities(row.optJSONArray("primaryAbilities")), 16));
+    if (row.optInt("hitDie") > 0) body.addView(text("Dado de golpe: d" + row.optInt("hitDie"), 16));
+    body.addView(text("Salvaciones: " + abilities(row.optJSONArray("savingThrows")), 16));
+    if (!row.optString("coreTraits").isEmpty())
+      details("Rasgos básicos y competencias", row.optString("coreTraits"));
+    if (guide) {
+      JSONArray features = row.optJSONArray("levelOneFeatures");
+      if (features != null)
+        for (int i = 0; i < features.length(); i++) {
+          JSONObject feature = features.optJSONObject(i);
+          if (feature != null) details(feature.optString("name"), feature.optString("description"));
+        }
+      if (!row.optString("progressionSummary").isEmpty())
+        details("Progresión de clase", row.optString("progressionSummary"));
+    }
+    provenance(row);
   }
 
   private void methods() {
@@ -269,9 +380,14 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void allocation() {
+    catalogStatus();
     AbilityScores a = d.abilities;
-    body.addView(
-        text("Prioridad de " + CharacterDraft.CLASSES[d.classIndex] + ": " + priority() + ".", 16));
+    JSONObject selectedClass = model.selectedClass();
+    if (selectedClass != null)
+      body.addView(
+          text(
+              "Atributos principales: " + abilities(selectedClass.optJSONArray("primaryAbilities")),
+              16));
     if (a.method == AbilityScores.Method.POINT_BUY) {
       body.addView(text("Puntos disponibles: " + a.remaining() + " de 27", 18));
       body.addView(
@@ -324,6 +440,15 @@ public class CrearPersonajeActivity extends AppCompatActivity {
             .append("\n");
       details("Ver los dados (se descarta el menor)", rolls.toString());
     }
+    int[] order = model.recommendedOrder();
+    if (order != null)
+      body.addView(
+          button(
+              "Aplicar recomendación de " + CharacterDraft.CLASSES[d.classIndex],
+              () -> {
+                a.recommend(order);
+                render();
+              }));
     if (a.method != AbilityScores.Method.POINT_BUY)
       body.addView(
           text(
@@ -332,20 +457,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     for (int i = 0; i < 6; i++) {
       final int ability = i;
       int value = a.score(i);
-      body.addView(
-          text(
-              CharacterDraft.ABILITIES[i]
-                  + (value == 0
-                      ? " · sin asignar"
-                      : " · "
-                          + value
-                          + " ("
-                          + String.format(
-                              java.util.Locale.ROOT, "%+d", AbilityScores.modifier(value))
-                          + ")"),
-              18));
+      LinearLayout row = new LinearLayout(this);
+      row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+      TextView label = text(CharacterDraft.ABILITIES[i], 15);
+      label.setPadding(0, dp(8), dp(4), dp(8));
+      row.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
       if (a.method == AbilityScores.Method.POINT_BUY) {
-        LinearLayout row = new LinearLayout(this);
         Button minus =
             button(
                 "−",
@@ -364,14 +481,31 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                 });
         plus.setContentDescription("Aumentar " + CharacterDraft.ABILITIES[i]);
         plus.setEnabled(value < 15 && a.remaining() >= (value >= 13 ? 2 : 1));
-        row.addView(minus, new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(plus, new LinearLayout.LayoutParams(0, -2, 1));
-        body.addView(row);
+        minus.setPadding(0, 0, 0, 0);
+        plus.setPadding(0, 0, 0, 0);
+        row.addView(minus, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        TextView number = text(String.valueOf(value), 16);
+        number.setGravity(android.view.Gravity.CENTER);
+        number.setPadding(0, 0, 0, 0);
+        row.addView(number, new LinearLayout.LayoutParams(dp(32), -2));
+        row.addView(plus, new LinearLayout.LayoutParams(dp(48), dp(48)));
       } else {
         String[] entries = new String[7];
+        String[] compact = new String[7];
         entries[0] = "Sin asignar";
-        for (int j = 0; j < 6; j++) entries[j + 1] = "Resultado " + (j + 1) + ": " + a.pool(j);
-        Spinner spinner =
+        compact[0] = "—";
+        for (int j = 0; j < 6; j++) {
+          int owner = a.ownerOf(j);
+          entries[j + 1] =
+              "Resultado "
+                  + (j + 1)
+                  + ": "
+                  + a.pool(j)
+                  + " · "
+                  + (owner < 0 ? "Disponible" : "Usado en " + CharacterDraft.ABILITIES[owner]);
+          compact[j + 1] = String.valueOf(a.pool(j));
+        }
+        Spinner selector =
             spinner(
                 entries,
                 a.assigned(i) + 1,
@@ -381,38 +515,39 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                     render();
                   }
                 });
-        spinner.setContentDescription("Asignar " + CharacterDraft.ABILITIES[i]);
-        body.addView(spinner);
+        ArrayAdapter<String> adapter =
+            new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, compact) {
+              @Override
+              public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setText(entries[position]);
+                view.setSingleLine(false);
+                return view;
+              }
+            };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        selector.setAdapter(adapter);
+        selector.setSelection(a.assigned(i) + 1);
+        selector.setContentDescription("Asignar " + CharacterDraft.ABILITIES[i]);
+        row.addView(selector, new LinearLayout.LayoutParams(dp(88), -2));
       }
+      TextView modifier =
+          text(
+              value == 0
+                  ? "—"
+                  : String.format(java.util.Locale.ROOT, "%+d", AbilityScores.modifier(value)),
+              16);
+      modifier.setPadding(dp(4), dp(8), 0, dp(8));
+      modifier.setGravity(android.view.Gravity.CENTER);
+      modifier.setContentDescription(
+          "Modificador de " + CharacterDraft.ABILITIES[i] + ": " + modifier.getText());
+      row.addView(modifier, new LinearLayout.LayoutParams(dp(40), -2));
+      body.addView(row);
     }
   }
 
-  private String priority() {
-    return new String[] {
-          "Fuerza",
-          "Carisma",
-          "Sabiduría",
-          "Sabiduría",
-          "Fuerza o Destreza",
-          "Inteligencia",
-          "Destreza y Sabiduría",
-          "Fuerza y Carisma",
-          "Destreza y Sabiduría",
-          "Destreza",
-          "Carisma",
-          "Carisma"
-        }
-        [d.classIndex];
-  }
-
   private void speciesGuide() {
-    body.addView(text(d.speciesName, 22));
-    body.addView(
-        text(
-            "Revisá sus rasgos: sentidos, velocidad y capacidades especiales. Los detalles del"
-                + " catálogo te ayudan a conocerla.",
-            16));
-    details("Consultar rasgos de la especie", d.speciesDescription);
+    speciesContext();
     body.addView(
         text(
             "Este paso es una guía. Las elecciones de rasgos no se asignan aquí. Después de crear,"
@@ -421,35 +556,8 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void classGuide() {
-    body.addView(text(CharacterDraft.CLASSES[d.classIndex] + " · prioridad: " + priority(), 22));
-    String[] guides = {
-      "La Furia potencia tu combate y tu resistencia. Revisá sus usos y condiciones, la Defensa sin"
-          + " armadura y las maestrías de armas.",
-      "La Inspiración bárdica ayuda a tus aliados. Revisá sus usos, tus competencias y los trucos y"
-          + " conjuros que preparás.",
-      "Tu magia usa Sabiduría. Revisá tus conjuros preparados y la elección de Orden divina de"
-          + " nivel 1.",
-      "Tu magia usa Sabiduría. Revisá tus trucos, conjuros preparados y la elección de Orden"
-          + " primigenia de nivel 1.",
-      "Revisá tu estilo de combate, Segundo aliento y las maestrías de armas. Fuerza o Destreza"
-          + " dependerá de tus armas.",
-      "Tu magia usa Inteligencia. A nivel 1, elegís 3 trucos y tu libro contiene 6 conjuros de"
-          + " nivel 1. Preparás 4 de esos conjuros y tenés 2 espacios de nivel 1. Revisá también"
-          + " Recuperación arcana y Adepto ritual.",
-      "Artes marciales usa tus ataques sin armas y armas de monje. Revisá Defensa sin armadura;"
-          + " Destreza y Sabiduría son importantes.",
-      "Revisá Imposición de manos, tus conjuros y las maestrías de armas. Fuerza ayuda en combate y"
-          + " Carisma a tu magia.",
-      "Revisá Enemigo predilecto, tus conjuros y las maestrías de armas. Destreza y Sabiduría"
-          + " orientan tus capacidades.",
-      "Ataque furtivo requiere condiciones concretas. Revisá Pericia, Jerga de ladrones y las"
-          + " maestrías de armas.",
-      "Tu magia usa Carisma. Revisá los trucos, conjuros preparados y Hechicería innata de nivel"
-          + " 1.",
-      "Tu magia usa Carisma. Magia de pacto tiene espacios que recuperás con un descanso corto o"
-          + " largo. Revisá tus conjuros e Invocaciones sobrenaturales."
-    };
-    body.addView(text(guides[d.classIndex], 17));
+    catalogStatus();
+    classContext(true);
     body.addView(
         text(
             "Guía de nivel 1 · D&D 2024. Este creador guarda la ficha base; las elecciones de"

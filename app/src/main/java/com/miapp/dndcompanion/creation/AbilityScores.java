@@ -41,6 +41,32 @@ public final class AbilityScores implements Serializable {
     System.arraycopy(new int[] {13, 13, 13, 12, 12, 12}, 0, points, 0, 6);
   }
 
+  public boolean recommend(int[] order) {
+    if (order == null
+        || order.length != 6
+        || method == null
+        || (method == Method.ROLL && !hasRolls())) return false;
+    boolean[] seen = new boolean[6];
+    for (int index : order) {
+      if (index < 0 || index >= 6 || seen[index]) return false;
+      seen[index] = true;
+    }
+    if (method == Method.POINT_BUY) {
+      for (int rank = 0; rank < 6; rank++) points[order[rank]] = standard[rank];
+    } else {
+      Integer[] ranked = {0, 1, 2, 3, 4, 5};
+      Arrays.sort(ranked, (left, right) -> Integer.compare(pool(right), pool(left)));
+      for (int rank = 0; rank < 6; rank++) slots()[order[rank]] = ranked[rank];
+    }
+    return true;
+  }
+
+  public int ownerOf(int slot) {
+    if (method == null || method == Method.POINT_BUY) return -1;
+    for (int i = 0; i < 6; i++) if (slots()[i] == slot) return i;
+    return -1;
+  }
+
   public boolean hasRolls() {
     return dice != null;
   }
