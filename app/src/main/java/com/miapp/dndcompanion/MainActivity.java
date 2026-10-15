@@ -365,6 +365,48 @@ public class MainActivity extends AppCompatActivity {
               18,
               INK));
     }
+    if (a.length() > 0 && a.optJSONObject(0).optJSONObject("breakdown") != null)
+      body.addView(
+          button(
+              this,
+              "Origen de los atributos",
+              () -> {
+                LinearLayout details = column(this);
+                JSONObject creation = state().optJSONObject("creation");
+                if (creation != null)
+                  details.addView(
+                      text(
+                          this,
+                          "Trasfondo: " + creation.optJSONObject("background").optString("name"),
+                          18,
+                          INK));
+                for (int i = 0; i < a.length(); i++) {
+                  JSONObject ability = a.optJSONObject(i),
+                      parts = ability.optJSONObject("breakdown");
+                  details.addView(
+                      text(
+                          this,
+                          ability.optString("label")
+                              + ": base "
+                              + parts.optInt("base")
+                              + " + trasfondo "
+                              + parts.optInt("background")
+                              + " − reducción "
+                              + parts.optInt("reduction")
+                              + " = "
+                              + parts.optInt("total"),
+                          16,
+                          INK));
+                }
+                details.addView(
+                    text(
+                        this,
+                        "Dote de origen, competencias, herramientas y equipo del trasfondo"
+                            + " pendientes de completar.",
+                        14,
+                        MUTED));
+                dialog("Origen de los atributos", details).show();
+              }));
     body.addView(button(this, "Configurar PV, competencias y recursos", this::configure));
     body.addView(button(this, "Gestionar vida", this::hpDialog));
     body.addView(button(this, "Condiciones y concentración", this::conditions));

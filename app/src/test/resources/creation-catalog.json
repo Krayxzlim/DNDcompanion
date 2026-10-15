@@ -487,5 +487,64 @@
       "progressionSummary": "Consultá la tabla de tu clase para conocer los rasgos y elecciones de cada nivel. Este catálogo muestra los rasgos de nivel 1 disponibles en la fuente; no resuelve la progresión.",
       "source": "Open5e · System Reference Document 5.2 · srd-2024_wizard"
     }
+  ],
+  "backgroundDecisionsVersion": 1,
+  "backgrounds": [
+    {
+      "key": "srd-2024_acolyte",
+      "name": "Acólito",
+      "abilities": [
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ],
+      "feat": "Magic Initiate (Cleric)",
+      "skills": "Insight and Religion",
+      "tools": "Calligrapher's Supplies",
+      "equipment": "*Choose A or B:* (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP",
+      "source": "Open5e · SRD 2024 · srd-2024_acolyte"
+    },
+    {
+      "key": "srd-2024_criminal",
+      "name": "Criminal",
+      "abilities": [
+        "dexterity",
+        "constitution",
+        "intelligence"
+      ],
+      "feat": "Alert",
+      "skills": "Sleight of Hand and Stealth",
+      "tools": "Thieves' Tools",
+      "equipment": "*Choose A or B:* (A) 2 Daggers, Thieves' Tools, Crowbar, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP",
+      "source": "Open5e · SRD 2024 · srd-2024_criminal"
+    },
+    {
+      "key": "srd-2024_sage",
+      "name": "Sabio",
+      "abilities": [
+        "constitution",
+        "intelligence",
+        "wisdom"
+      ],
+      "feat": "Magic Initiate (Wizard)",
+      "skills": "Arcana and History",
+      "tools": "Calligrapher's Supplies",
+      "equipment": "*Choose A or B:* (A) Quarterstaff, Calligrapher's Supplies, Book (history), Parchment (8 sheets), Robe, 8 GP; or (B) 50 GP",
+      "source": "Open5e · SRD 2024 · srd-2024_sage"
+    },
+    {
+      "key": "srd-2024_soldier",
+      "name": "Soldado",
+      "abilities": [
+        "strength",
+        "dexterity",
+        "constitution"
+      ],
+      "feat": "Savage Attacker",
+      "skills": "Athletics and Intimidation",
+      "tools": "Choose one kind of Gaming Set",
+      "equipment": "*Choose A or B:* (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Healer's Kit, Quiver, Traveler's Clothes, 14 GP; or (B) 50 GP",
+      "source": "Open5e · SRD 2024 · srd-2024_soldier"
+    }
   ]
 }

@@ -32,6 +32,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     "Elegí tu clase",
     "¿Cómo obtenés tus atributos?",
     "Asigná tus atributos",
+    "Elegí tu trasfondo",
     "Conocé tu especie",
     "Conocé tu clase",
     "Dale una identidad",
@@ -76,6 +77,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
           if (root == null
               || d.step == CharacterDraft.Step.SPECIES
               || d.step == CharacterDraft.Step.CLASS
+              || d.step == CharacterDraft.Step.BACKGROUND
               || d.step == CharacterDraft.Step.ALLOCATION
               || d.step == CharacterDraft.Step.SPECIES_GUIDE
               || d.step == CharacterDraft.Step.CLASS_GUIDE
@@ -133,7 +135,13 @@ public class CrearPersonajeActivity extends AppCompatActivity {
           v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
           return insets;
         });
-    root.addView(text("CREAR PERSONAJE · " + (d.step.ordinal() + 1) + " de 8", 14));
+    root.addView(
+        text(
+            "CREAR PERSONAJE · "
+                + (d.step.ordinal() + 1)
+                + " de "
+                + CharacterDraft.Step.values().length,
+            14));
     root.addView(text(TITLES[d.step.ordinal()], 24));
     ScrollView scroll = new ScrollView(this);
     currentScroll = scroll;
@@ -154,6 +162,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         break;
       case ALLOCATION:
         allocation();
+        break;
+      case BACKGROUND:
+        background();
         break;
       case SPECIES_GUIDE:
         speciesGuide();
@@ -546,6 +557,140 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     }
   }
 
+  private void background() {
+    body.addView(
+        text(
+            "Tu trasfondo aumenta los atributos. La especie no agrega aumentos en las reglas de"
+                + " 2024.",
+            16));
+    catalogStatus();
+    JSONArray entries =
+        model.creation == null || model.creation.optInt("backgroundDecisionsVersion") != 1
+            ? null
+            : model.creation.optJSONArray("backgrounds");
+    if (entries == null && !model.creationLoading)
+      body.addView(button("Actualizar trasfondos", this::loadCatalog));
+    List<JSONObject> rows = new ArrayList<>();
+    if (entries != null)
+      for (int i = 0; i < entries.length(); i++) {
+        JSONObject row = entries.optJSONObject(i);
+        if (row != null
+            && row.optJSONArray("abilities") != null
+            && row.optJSONArray("abilities").length() == 3) rows.add(row);
+      }
+    if (!d.background.key.isEmpty()
+        && rows.stream().noneMatch(row -> row.optString("key").equals(d.background.key))) {
+      JSONObject saved = new JSONObject();
+      try {
+        saved.put("key", d.background.key).put("name", d.background.name);
+      } catch (org.json.JSONException ignored) {
+      }
+      rows.add(saved);
+    }
+    if (!rows.isEmpty()) {
+      String[] names = new String[rows.size() + 1];
+      names[0] = "Seleccioná un trasfondo";
+      int selected = 0;
+      for (int i = 0; i < rows.size(); i++) {
+        names[i + 1] = rows.get(i).optString("name");
+        if (rows.get(i).optString("key").equals(d.background.key)) selected = i + 1;
+      }
+      Spinner selector =
+          spinner(
+              names,
+              selected,
+              position -> {
+                if (position == 0) {
+                  if (!d.background.key.isEmpty()) {
+                    d.background.select("", "", "", new int[0]);
+                    render();
+                  }
+                  return;
+                }
+                JSONObject row = rows.get(position - 1);
+                if (row.optString("key").equals(d.background.key)) return;
+                JSONArray keys = row.optJSONArray("abilities");
+                int[] allowed = new int[3];
+                for (int i = 0; i < 3; i++)
+                  allowed[i] = CreationViewModel.abilityIndex(keys.optString(i));
+                if (Arrays.stream(allowed).anyMatch(i -> i < 0)) return;
+                d.background.select(
+                    row.optString("key"),
+                    row.optString("name"),
+                    "Dote: "
+                        + row.optString("feat")
+                        + "\nCompetencias: "
+                        + row.optString("skills")
+                        + "\nHerramientas: "
+                        + row.optString("tools")
+                        + "\nEquipo: "
+                        + row.optString("equipment")
+                        + "\n"
+                        + row.optString("source"),
+                    allowed);
+                d.level = 1;
+                render();
+              });
+      selector.setContentDescription("Seleccionar trasfondo");
+      body.addView(selector);
+    } else
+      body.addView(
+          text(
+              "El catálogo de trasfondos no está disponible. Podés reintentar o completar este paso"
+                  + " más adelante.",
+              16));
+    if (!d.background.key.isEmpty()) {
+      body.addView(text(d.background.name, 20));
+      body.addView(text("Elegí +2 y +1 en dos atributos distintos, o +1 en los tres.", 16));
+      body.addView(
+          button(
+              "Aplicar +1 a los tres",
+              () -> {
+                Arrays.fill(d.background.increases, 0);
+                for (int i : d.background.allowed) d.background.increases[i] = 1;
+                render();
+              }));
+      for (int index : d.background.allowed) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.addView(
+            text(CharacterDraft.ABILITIES[index] + " · base " + d.abilities.score(index), 16),
+            new LinearLayout.LayoutParams(0, -2, 1));
+        Spinner increase =
+            spinner(
+                new String[] {"+0", "+1", "+2"},
+                d.background.increases[index],
+                value -> {
+                  if (d.background.increases[index] != value) {
+                    d.background.increases[index] = value;
+                    render();
+                  }
+                });
+        increase.setContentDescription("Aumento de " + CharacterDraft.ABILITIES[index]);
+        row.addView(increase, new LinearLayout.LayoutParams(dp(88), -2));
+        body.addView(row);
+      }
+      if (!d.background.valid())
+        body.addView(text("Completá un reparto válido para continuar.", 14));
+      details("Dote, competencias y equipo pendientes", d.background.details);
+      body.addView(
+          text(
+              "Se guardarán el trasfondo y sus aumentos. Sus demás beneficios quedan pendientes de"
+                  + " completar. Este flujo admite nivel 1.",
+              14));
+    }
+    if (d.background.deferred)
+      body.addView(text("Trasfondo pendiente · se guardarán solo los atributos base.", 16));
+    else
+      body.addView(
+          button(
+              "Completar trasfondo más adelante",
+              () -> {
+                d.background.defer();
+                render();
+              }));
+  }
+
   private void speciesGuide() {
     speciesContext();
     body.addView(
@@ -590,6 +735,10 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         });
     body.addView(text("Alineación", 18));
     body.addView(spinner(CharacterDraft.ALIGNMENTS, d.alignment, value -> d.alignment = value));
+    if (!d.background.key.isEmpty()) {
+      body.addView(text("Nivel 1 · el trasfondo se guarda con los atributos iniciales.", 16));
+      return;
+    }
     body.addView(text("Nivel (1 para empezar)", 18));
     String[] levels = new String[20];
     for (int i = 0; i < 20; i++) levels[i] = String.valueOf(i + 1);
@@ -616,13 +765,27 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                 + "\n"
                 + CharacterDraft.ALIGNMENTS[d.alignment],
             18));
-    for (int i = 0; i < 6; i++)
-      body.addView(text(CharacterDraft.ABILITIES[i] + ": " + d.abilities.score(i), 16));
+    if (!d.background.key.isEmpty()) body.addView(text("Trasfondo: " + d.background.name, 18));
+    for (int i = 0; i < 6; i++) {
+      String score =
+          d.background.key.isEmpty()
+              ? String.valueOf(d.abilities.score(i))
+              : d.abilities.score(i) + " + " + d.background.increases[i] + " = " + d.finalScore(i);
+      body.addView(
+          text(
+              CharacterDraft.ABILITIES[i]
+                  + ": "
+                  + score
+                  + " · Mod "
+                  + String.format(
+                      java.util.Locale.ROOT, "%+d", AbilityScores.modifier(d.finalScore(i))),
+              16));
+    }
     body.addView(
         text(
-            "Se guardarán tu identidad y tus atributos base. Después, usá Completar ficha para PV,"
-                + " competencias y recursos. Revisá también tu trasfondo, rasgos y conjuros con el"
-                + " manual.",
+            "Se guardarán tu identidad y los atributos del resumen. Después, usá Completar ficha"
+                + " para PV, competencias y recursos. Revisá también tu trasfondo, rasgos y"
+                + " conjuros con el manual.",
             16));
     if (!model.saveError.isEmpty()) body.addView(text(model.saveError, 16));
   }
@@ -636,7 +799,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     result.putExtra("personaje_nivel", d.level);
     result.putExtra("personaje_alineacion", CharacterDraft.ALIGNMENTS[d.alignment]);
     String[] keys = {"fue", "des", "con", "int", "sab", "car"};
-    for (int i = 0; i < 6; i++) result.putExtra("personaje_" + keys[i], d.abilities.score(i));
+    for (int i = 0; i < 6; i++) result.putExtra("personaje_" + keys[i], d.finalScore(i));
     setResult(RESULT_OK, result);
     finish();
   }

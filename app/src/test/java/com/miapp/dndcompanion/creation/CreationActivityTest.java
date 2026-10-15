@@ -31,6 +31,7 @@ public class CreationActivityTest {
     d.classIndex = 5;
     d.abilities.method = AbilityScores.Method.POINT_BUY;
     d.abilities.balanced();
+    d.background.defer();
     d.step = CharacterDraft.Step.ALLOCATION;
     return d;
   }
@@ -52,7 +53,7 @@ public class CreationActivityTest {
     assertNotNull(find(a, "¿Cómo obtenés tus atributos?"));
     find(a, "Continuar").performClick();
     assertNotNull(find(a, "Puntos disponibles: 0 de 27"));
-    for (int i = 0; i < 3; i++) find(a, "Continuar").performClick();
+    for (int i = 0; i < 4; i++) find(a, "Continuar").performClick();
     EditText input = edit(a.getWindow().getDecorView());
     assertNotNull(input);
     input.setText("Ada");
@@ -226,6 +227,64 @@ public class CreationActivityTest {
     assertNull(find(c.get(), "Tamaño: Pequeño"));
     assertFalse(find(c.get(), "Continuar").isEnabled());
     c.pause().stop().destroy();
+  }
+
+  @Test
+  public void backgroundStepGuidesBoostsAndKeepsThemAfterRecreation() throws Exception {
+    CharacterDraft d = draft();
+    d.background.deferred = false;
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    try (InputStream in = getClass().getResourceAsStream("/creation-catalog.json")) {
+      model.creation =
+          new org.json.JSONObject(
+              new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+    }
+    model.creationLoaded = true;
+    model.changed();
+    find(c.get(), "Continuar").performClick();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals(CharacterDraft.Step.BACKGROUND, d.step);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(3);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals("Sabio", d.background.name);
+    find(c.get(), "Aplicar +1 a los tres").performClick();
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(4);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    assertEquals(12, d.abilities.score(3));
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(3);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Aumento de Inteligencia").setSelection(2);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Aumento de Constitución").setSelection(1);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    assertEquals(14, d.finalScore(3));
+    View root = c.get().findViewById(android.R.id.content);
+    root.measure(
+        View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY));
+    root.layout(0, 0, 320, 640);
+    Bitmap bitmap = Bitmap.createBitmap(320, 640, Bitmap.Config.ARGB_8888);
+    root.draw(new Canvas(bitmap));
+    File file = new File("build/reports/creation/background-320.png");
+    file.getParentFile().mkdirs();
+    try (FileOutputStream out = new FileOutputStream(file)) {
+      assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, out));
+    }
+    Bundle state = new Bundle();
+    c.saveInstanceState(state).pause().stop().destroy();
+    ActivityController<OfflineActivity> restored =
+        Robolectric.buildActivity(OfflineActivity.class).create(state).start().resume().visible();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    CreationViewModel fresh = new ViewModelProvider(restored.get()).get(CreationViewModel.class);
+    assertEquals("Sabio", fresh.draft.background.name);
+    assertEquals(14, fresh.draft.finalScore(3));
+    assertTrue(find(restored.get(), "Continuar").isEnabled());
+    restored.pause().stop().destroy();
   }
 
   private Spinner spinner(View v, String description) {

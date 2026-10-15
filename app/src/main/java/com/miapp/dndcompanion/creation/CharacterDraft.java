@@ -10,6 +10,7 @@ public final class CharacterDraft implements Serializable {
     CLASS,
     METHOD,
     ALLOCATION,
+    BACKGROUND,
     SPECIES_GUIDE,
     CLASS_GUIDE,
     IDENTITY,
@@ -30,6 +31,26 @@ public final class CharacterDraft implements Serializable {
     "Hechicero",
     "Brujo"
   };
+  public static final String[] CLASS_KEYS = {
+    "barbarian",
+    "bard",
+    "cleric",
+    "druid",
+    "fighter",
+    "wizard",
+    "monk",
+    "paladin",
+    "ranger",
+    "rogue",
+    "sorcerer",
+    "warlock"
+  };
+  public final BackgroundChoice background = new BackgroundChoice();
+
+  public int finalScore(int index) {
+    return abilities.score(index) + (background.key.isEmpty() ? 0 : background.increases[index]);
+  }
+
   public static final String[] ALIGNMENTS = {
     "Legal Bueno",
     "Neutral Bueno",
@@ -62,6 +83,8 @@ public final class CharacterDraft implements Serializable {
         return abilities.method != null;
       case ALLOCATION:
         return abilities.complete();
+      case BACKGROUND:
+        return background.deferred || background.valid();
       case IDENTITY:
         return !name.trim().isEmpty();
       default:
@@ -85,14 +108,48 @@ public final class CharacterDraft implements Serializable {
         || name.trim().length() > 160
         || !abilities.complete()
         || level < 1
-        || level > 20) throw new IllegalStateException("Completá los pasos antes de crear.");
+        || level > 20
+        || (!background.key.isEmpty() && (!background.valid() || level != 1)))
+      throw new IllegalStateException("Completá los pasos antes de crear.");
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("name", name.trim());
     result.put("race", speciesName);
     result.put("characterClass", CLASSES[classIndex]);
     result.put("level", level);
     result.put("alignment", ALIGNMENTS[alignment]);
-    for (int i = 0; i < 6; i++) result.put(KEYS[i], abilities.score(i));
+    for (int i = 0; i < 6; i++) result.put(KEYS[i], finalScore(i));
+    if (!background.key.isEmpty()) {
+      Map<String, Object> creation = new LinkedHashMap<>();
+      creation.put("version", 1);
+      creation.put("ruleset", "srd-2024");
+      creation.put("speciesKey", speciesKey);
+      creation.put("classKey", CLASS_KEYS[classIndex]);
+      creation.put(
+          "method",
+          abilities.method == AbilityScores.Method.POINT_BUY
+              ? "pointBuy"
+              : abilities.method == AbilityScores.Method.ROLL ? "rolled" : "standard");
+      Map<String, Object> base = new LinkedHashMap<>(), increases = new LinkedHashMap<>();
+      for (int i = 0; i < 6; i++) {
+        base.put(KEYS[i], abilities.score(i));
+        increases.put(KEYS[i], background.increases[i]);
+      }
+      creation.put("baseScores", base);
+      if (abilities.method == AbilityScores.Method.ROLL) {
+        java.util.List<java.util.List<Integer>> rolls = new java.util.ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+          java.util.List<Integer> row = new java.util.ArrayList<>();
+          for (int value : abilities.dice(i)) row.add(value);
+          rolls.add(row);
+        }
+        creation.put("rolls", rolls);
+      }
+      Map<String, Object> choice = new LinkedHashMap<>();
+      choice.put("key", background.key);
+      choice.put("increases", increases);
+      creation.put("background", choice);
+      result.put("creation", creation);
+    }
     return result;
   }
 }
