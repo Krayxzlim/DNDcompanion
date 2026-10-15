@@ -50,3 +50,9 @@ El resumen distingue base, aumento y total con su modificador. Al guardar, la AP
 La dote de origen, competencias, herramientas y equipo se muestran como pendientes; esta entrega no los aplica automáticamente. El flujo con trasfondo admite nivel 1. «Completar trasfondo más adelante» mantiene el alta anterior sin aumentos ni decisiones de trasfondo. Las fichas existentes no se migran ni reciben bonificaciones nuevas.
 
 Depende del catálogo con `backgroundDecisionsVersion: 1` y del alta con `creation`. Si el servidor no ofrece la capacidad, se puede reintentar o continuar explícitamente sin trasfondo. La API protege las decisiones guardadas frente a cambios directos de atributos/clase/especie/nivel hasta incorporar un flujo de corrección y progresión.
+
+## Competencias concedidas por el trasfondo
+
+Cuando el catálogo anuncia `backgroundSkillsVersion: 1`, el creador informa que las dos competencias de habilidad del trasfondo se aplicarán al guardar. La API determina sus claves y calcula su bono. Las pruebas de habilidad muestran el trasfondo de procedencia.
+
+En la configuración, «Trasfondo (competente)» conserva la competencia concedida sin agregar otra fuente manual; «Competencia adicional» no duplica el bono, y «Pericia» usa el rango superior. Se conserva la presentación anterior cuando el servidor no devuelve los campos nuevos. Las fichas creadas antes de esta capacidad mantienen sus competencias existentes y los avisos de beneficios pendientes.

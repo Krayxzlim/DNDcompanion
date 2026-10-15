@@ -628,6 +628,8 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                         + "\n"
                         + row.optString("source"),
                     allowed);
+                d.background.skillGrantsApplied =
+                    model.creation != null && model.creation.optInt("backgroundSkillsVersion") == 1;
                 d.level = 1;
                 render();
               });
@@ -672,11 +674,14 @@ public class CrearPersonajeActivity extends AppCompatActivity {
       }
       if (!d.background.valid())
         body.addView(text("Completá un reparto válido para continuar.", 14));
-      details("Dote, competencias y equipo pendientes", d.background.details);
+      details("Beneficios del trasfondo", d.background.details);
       body.addView(
           text(
-              "Se guardarán el trasfondo y sus aumentos. Sus demás beneficios quedan pendientes de"
-                  + " completar. Este flujo admite nivel 1.",
+              d.background.skillGrantsApplied
+                  ? "Se aplican los aumentos y las competencias de habilidad. Quedan pendientes la"
+                        + " dote, las herramientas y el equipo. Este flujo admite nivel 1."
+                  : "Se guardarán el trasfondo y sus aumentos. Sus demás beneficios quedan"
+                        + " pendientes de completar. Este flujo admite nivel 1.",
               14));
     }
     if (d.background.deferred)

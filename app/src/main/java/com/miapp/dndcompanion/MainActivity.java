@@ -401,8 +401,13 @@ public class MainActivity extends AppCompatActivity {
                 details.addView(
                     text(
                         this,
-                        "Dote de origen, competencias, herramientas y equipo del trasfondo"
-                            + " pendientes de completar.",
+                        creation != null
+                                && creation.optJSONObject("background").optJSONArray("skillGrants")
+                                    != null
+                            ? "Competencias de habilidad del trasfondo aplicadas. Dote de origen,"
+                                  + " herramientas y equipo pendientes."
+                            : "Dote de origen, competencias, herramientas y equipo del trasfondo"
+                                  + " pendientes de completar.",
                         14,
                         MUTED));
                 dialog("Origen de los atributos", details).show();
@@ -549,7 +554,12 @@ public class MainActivity extends AppCompatActivity {
                 list.addView(
                     button(
                         this,
-                        x.optString("label") + "  " + signed(x.optInt("modifier")),
+                        x.optString("label")
+                            + "  "
+                            + signed(x.optInt("modifier"))
+                            + (x.optInt("backgroundRank") > 0
+                                ? " · Trasfondo: " + x.optString("backgroundSource")
+                                : ""),
                         () -> {
                           d.dismiss();
                           roll("skill", x.optString("key"), x.optString("label"));
@@ -893,8 +903,10 @@ public class MainActivity extends AppCompatActivity {
           new ArrayAdapter<>(
               this,
               android.R.layout.simple_spinner_dropdown_item,
-              new String[] {"Sin competencia", "Competencia", "Pericia"}));
-      sp.setSelection(skill.optInt("rank"));
+              skill.optInt("backgroundRank") > 0
+                  ? new String[] {"Trasfondo (competente)", "Competencia adicional", "Pericia"}
+                  : new String[] {"Sin competencia", "Competencia", "Pericia"}));
+      sp.setSelection(skill.optInt("configuredRank", skill.optInt("rank")));
       row.addView(sp);
       form.addView(row);
       ranks.add(sp);

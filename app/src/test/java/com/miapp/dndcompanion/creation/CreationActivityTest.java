@@ -249,6 +249,7 @@ public class CreationActivityTest {
     spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(3);
     Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     assertEquals("Sabio", d.background.name);
+    assertTrue(d.background.skillGrantsApplied);
     find(c.get(), "Aplicar +1 a los tres").performClick();
     assertTrue(find(c.get(), "Continuar").isEnabled());
     spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(4);
@@ -282,6 +283,7 @@ public class CreationActivityTest {
     Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     CreationViewModel fresh = new ViewModelProvider(restored.get()).get(CreationViewModel.class);
     assertEquals("Sabio", fresh.draft.background.name);
+    assertTrue(fresh.draft.background.skillGrantsApplied);
     assertEquals(14, fresh.draft.finalScore(3));
     assertTrue(find(restored.get(), "Continuar").isEnabled());
     restored.pause().stop().destroy();

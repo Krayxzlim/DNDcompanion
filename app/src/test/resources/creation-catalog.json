@@ -489,6 +489,7 @@
     }
   ],
   "backgroundDecisionsVersion": 1,
+  "backgroundSkillsVersion": 1,
   "backgrounds": [
     {
       "key": "srd-2024_acolyte",
@@ -500,6 +501,10 @@
       ],
       "feat": "Magic Initiate (Cleric)",
       "skills": "Insight and Religion",
+      "skillGrants": [
+        "insight",
+        "religion"
+      ],
       "tools": "Calligrapher's Supplies",
       "equipment": "*Choose A or B:* (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP",
       "source": "Open5e · SRD 2024 · srd-2024_acolyte"
@@ -514,6 +519,10 @@
       ],
       "feat": "Alert",
       "skills": "Sleight of Hand and Stealth",
+      "skillGrants": [
+        "sleightOfHand",
+        "stealth"
+      ],
       "tools": "Thieves' Tools",
       "equipment": "*Choose A or B:* (A) 2 Daggers, Thieves' Tools, Crowbar, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP",
       "source": "Open5e · SRD 2024 · srd-2024_criminal"
@@ -528,6 +537,10 @@
       ],
       "feat": "Magic Initiate (Wizard)",
       "skills": "Arcana and History",
+      "skillGrants": [
+        "arcana",
+        "history"
+      ],
       "tools": "Calligrapher's Supplies",
       "equipment": "*Choose A or B:* (A) Quarterstaff, Calligrapher's Supplies, Book (history), Parchment (8 sheets), Robe, 8 GP; or (B) 50 GP",
       "source": "Open5e · SRD 2024 · srd-2024_sage"
@@ -542,6 +555,10 @@
       ],
       "feat": "Savage Attacker",
       "skills": "Athletics and Intimidation",
+      "skillGrants": [
+        "athletics",
+        "intimidation"
+      ],
       "tools": "Choose one kind of Gaming Set",
       "equipment": "*Choose A or B:* (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Healer's Kit, Quiver, Traveler's Clothes, 14 GP; or (B) 50 GP",
       "source": "Open5e · SRD 2024 · srd-2024_soldier"

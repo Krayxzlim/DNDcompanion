@@ -7,7 +7,7 @@ public final class BackgroundChoice implements Serializable {
   public String key = "", name = "", details = "";
   public int[] allowed = new int[0];
   public final int[] increases = new int[6];
-  public boolean deferred;
+  public boolean deferred, skillGrantsApplied;
 
   public void select(String key, String name, String details, int[] allowed) {
     this.key = key;
@@ -15,6 +15,7 @@ public final class BackgroundChoice implements Serializable {
     this.details = details;
     this.allowed = allowed.clone();
     deferred = false;
+    skillGrantsApplied = false;
     Arrays.fill(increases, 0);
   }
 
