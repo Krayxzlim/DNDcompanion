@@ -398,20 +398,49 @@ public class MainActivity extends AppCompatActivity {
                           16,
                           INK));
                 }
-                details.addView(
-                    text(
-                        this,
-                        creation != null
-                                && creation.optJSONObject("background").optJSONArray("skillGrants")
-                                    != null
-                            ? "Competencias de habilidad del trasfondo aplicadas. Dote de origen,"
-                                  + " herramientas y equipo pendientes."
-                            : "Dote de origen, competencias, herramientas y equipo del trasfondo"
-                                  + " pendientes de completar.",
-                        14,
-                        MUTED));
+                JSONArray warnings = array(sheet().optJSONObject("completeness"), "warnings");
+                for (int i = 0; i < warnings.length(); i++)
+                  details.addView(text(this, warnings.optString(i), 14, MUTED));
                 dialog("Origen de los atributos", details).show();
               }));
+    JSONArray toolProficiencies = array(derived(), "tools");
+    if (toolProficiencies.length() > 0)
+      body.addView(
+          button(
+              this,
+              "Herramientas del trasfondo",
+              () -> {
+                LinearLayout form = column(this);
+                AlertDialog tools = dialog("Herramientas", form);
+                form.addView(
+                    text(
+                        this,
+                        "Verificá con el DM que disponés de la herramienta y que corresponde usarla"
+                            + " en esta prueba.",
+                        14,
+                        MUTED));
+                for (int i = 0; i < toolProficiencies.length(); i++) {
+                  JSONObject tool = toolProficiencies.optJSONObject(i);
+                  form.addView(
+                      button(
+                          this,
+                          tool.optString("name") + " · " + signed(tool.optInt("modifier")),
+                          () -> {
+                            tools.dismiss();
+                            roll("tool", tool.optString("key"), tool.optString("name"));
+                          }));
+                }
+                tools.show();
+              }));
+    JSONObject originFeat = derived().optJSONObject("originFeat");
+    if (originFeat != null)
+      body.addView(
+          button(
+              this,
+              "Dote de origen · " + originFeat.optString("name"),
+              () -> originFeatDialog(originFeat)));
+    if (derived().has("originFeat"))
+      body.addView(button(this, "Tirar iniciativa", () -> roll("initiative", "", "Iniciativa")));
     body.addView(button(this, "Configurar PV, competencias y recursos", this::configure));
     body.addView(button(this, "Gestionar vida", this::hpDialog));
     body.addView(button(this, "Condiciones y concentración", this::conditions));
@@ -1013,8 +1042,149 @@ public class MainActivity extends AppCompatActivity {
     dialog.show();
   }
 
+  private void originFeatDialog(JSONObject feat) {
+    LinearLayout form = column(this);
+    AlertDialog dialog = dialog(feat.optString("name"), form);
+    form.addView(text(this, feat.optString("description"), 16, INK));
+    if (feat.optString("key").equals("magicInitiate"))
+      form.addView(
+          text(
+              this,
+              "Lanzamiento gratuito disponible: "
+                  + feat.optInt("freeCastRemaining")
+                  + ". Abrí el conjuro desde el grimorio para usarlo.",
+              16,
+              INK));
+    if (feat.optString("key").equals("savageAttacker")) {
+      form.addView(
+          text(
+              this,
+              "Turno declarado: "
+                  + feat.optInt("turn")
+                  + " · "
+                  + (feat.optBoolean("availableThisTurn") ? "Disponible" : "No disponible"),
+              16,
+              INK));
+      form.addView(
+          button(
+              this,
+              "Declarar nuevo turno de combate",
+              () ->
+                  new AlertDialog.Builder(this)
+                      .setTitle("¿Comenzó un nuevo turno?")
+                      .setMessage(
+                          "Confirmá que cambió el turno en la mesa. Esto habilita un uso de"
+                              + " Atacante salvaje; no aplica descansos ni recupera otros"
+                              + " recursos.")
+                      .setNegativeButton("Cancelar", null)
+                      .setPositiveButton(
+                          "Confirmar",
+                          (d, w) -> {
+                            dialog.dismiss();
+                            vm.command("beginTurn", obj());
+                          })
+                      .show()));
+      JSONArray items = array(state(), "inventory");
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject weapon = items.optJSONObject(i);
+        if (!weapon.optString("type").equals("weapon")
+            || !weapon.optBoolean("equipped")
+            || weapon.optInt("quantity") < 1) continue;
+        TextView attack =
+            button(
+                this,
+                "Impacté con " + weapon.optString("name"),
+                () -> {
+                  LinearLayout damage = column(this);
+                  CheckBox critical =
+                      check(damage, "Impacto crítico (duplicar dados del arma)", false);
+                  damage.addView(
+                      text(
+                          this,
+                          "Se tiran solo los dados del arma dos veces. Elegí uno de los conjuntos y"
+                              + " agregá los modificadores; la app no resuelve al objetivo ni otros"
+                              + " dados de daño.",
+                          14,
+                          MUTED));
+                  AlertDialog confirm = dialog("Atacante salvaje", damage);
+                  damage.addView(
+                      button(
+                          this,
+                          "Tirar los dos conjuntos",
+                          () -> {
+                            confirm.dismiss();
+                            dialog.dismiss();
+                            vm.command(
+                                "savageAttacker",
+                                obj(
+                                    "weaponId",
+                                    weapon.optString("id"),
+                                    "critical",
+                                    critical.isChecked()));
+                          }));
+                  confirm.show();
+                });
+        attack.setEnabled(feat.optBoolean("availableThisTurn"));
+        form.addView(attack);
+      }
+    }
+    dialog.show();
+  }
+
   private void inventory() {
     heading("Inventario");
+    JSONObject currency = derived().optJSONObject("currency");
+    if (currency != null) {
+      body.addView(
+          text(
+              this,
+              "Oro: "
+                  + java.math.BigDecimal.valueOf(currency.optLong("copper"), 2)
+                      .stripTrailingZeros()
+                      .toPlainString()
+                  + " po",
+              20,
+              GOLD));
+      body.addView(
+          button(
+              this,
+              "Registrar ingreso o gasto",
+              () -> {
+                LinearLayout form = column(this);
+                Spinner operation =
+                    options(form, "Operación", new String[] {"Gastar", "Recibir"}, 0);
+                EditText amount = field(form, "Cantidad en po (hasta 2 decimales)", "", true);
+                amount.setInputType(
+                    android.text.InputType.TYPE_CLASS_NUMBER
+                        | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                AlertDialog money = dialog("Oro", form);
+                form.addView(
+                    button(
+                        this,
+                        "Confirmar",
+                        () ->
+                            attempt(
+                                () -> {
+                                  int copper =
+                                      new java.math.BigDecimal(
+                                              amount.getText().toString().replace(',', '.'))
+                                          .movePointRight(2)
+                                          .intValueExact();
+                                  if (copper <= 0)
+                                    throw new IllegalArgumentException(
+                                        "Ingresá una cantidad positiva.");
+                                  vm.command(
+                                      "money",
+                                      obj(
+                                          "deltaCopper",
+                                          operation.getSelectedItemPosition() == 0
+                                              ? -copper
+                                              : copper));
+                                  money.dismiss();
+                                })));
+                money.show();
+              }));
+    }
     body.addView(button(this, "+ Añadir objeto", () -> itemEditor(null)));
     JSONArray a = array(state(), "inventory");
     if (a.length() == 0)
@@ -1338,14 +1508,15 @@ public class MainActivity extends AppCompatActivity {
               d.dismiss();
               cast(spell);
             }));
-    f.addView(
-        button(
-            this,
-            "Editar preparación / datos",
-            () -> {
-              d.dismiss();
-              spellEditor(spell);
-            }));
+    if (!spell.optString("grantedBy").equals("magicInitiate"))
+      f.addView(
+          button(
+              this,
+              "Editar preparación / datos",
+              () -> {
+                d.dismiss();
+                spellEditor(spell);
+              }));
     d.show();
   }
 
@@ -1375,6 +1546,25 @@ public class MainActivity extends AppCompatActivity {
             0);
     CheckBox ritual = check(f, "Ritual (+10 minutos, si corresponde)", false),
         replace = check(f, "Confirmar reemplazo de concentración", false);
+    CheckBox originUse = new CheckBox(this);
+    if (spell.optString("grantedBy").equals("magicInitiate") && spell.optInt("level") == 1) {
+      JSONObject feat = derived().optJSONObject("originFeat");
+      boolean available = feat != null && feat.optInt("freeCastRemaining") > 0;
+      originUse.setText(
+          "Lanzamiento gratuito · " + (available ? "disponible" : "usado hasta descanso largo"));
+      originUse.setTextColor(INK);
+      originUse.setChecked(available);
+      originUse.setEnabled(available);
+      f.addView(originUse);
+      ritual.setOnCheckedChangeListener(
+          (view, value) -> {
+            if (value) originUse.setChecked(false);
+          });
+      originUse.setOnCheckedChangeListener(
+          (view, value) -> {
+            if (value) ritual.setChecked(false);
+          });
+    }
     f.addView(
         text(
             this,
@@ -1392,8 +1582,7 @@ public class MainActivity extends AppCompatActivity {
                   eligible.isEmpty()
                       ? obj("level", 0)
                       : eligible.get(choose.getSelectedItemPosition());
-              vm.command(
-                  "cast",
+              JSONObject data =
                   obj(
                       "id",
                       spell.optString("id"),
@@ -1404,7 +1593,15 @@ public class MainActivity extends AppCompatActivity {
                       "ritual",
                       ritual.isChecked(),
                       "replaceConcentration",
-                      replace.isChecked()));
+                      replace.isChecked());
+              if (originUse.isChecked()) {
+                try {
+                  data.put("originFeatUse", true);
+                } catch (JSONException error) {
+                  throw new IllegalArgumentException(error);
+                }
+              }
+              vm.command("cast", data);
               d.dismiss();
             }));
     d.show();

@@ -289,6 +289,99 @@ public class CreationActivityTest {
     restored.pause().stop().destroy();
   }
 
+  @Test
+  public void soldierRequiresToolAndEquipmentAndKeepsChoicesWhenGoingBack() throws Exception {
+    CharacterDraft d = draft();
+    d.background.deferred = false;
+    d.step = CharacterDraft.Step.BACKGROUND;
+    d.name = "Ada";
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    try (InputStream in = getClass().getResourceAsStream("/creation-catalog.json")) {
+      model.creation =
+          new org.json.JSONObject(
+              new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+    }
+    model.creationLoaded = true;
+    model.changed();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), "Seleccionar trasfondo").setSelection(4);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    find(c.get(), "Aplicar +1 a los tres").performClick();
+    find(c.get(), "Continuar").performClick();
+    assertEquals(CharacterDraft.Step.BACKGROUND_LOADOUT, d.step);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    find(c.get(), "Opción B · 50 po").performClick();
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    spinner(c.get().getWindow().getDecorView(), "Herramienta del trasfondo").setSelection(3);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    assertEquals("cards", d.background.toolChoice);
+    org.json.JSONObject payload = new org.json.JSONObject(d.payload());
+    assertEquals(
+        "B",
+        payload.getJSONObject("creation").getJSONObject("background").getString("equipmentOption"));
+    find(c.get(), "Atrás").performClick();
+    find(c.get(), "Continuar").performClick();
+    assertEquals("B", d.background.equipmentOption);
+    assertEquals("cards", d.background.toolChoice);
+    c.pause().stop().destroy();
+  }
+
+  @Test
+  public void magicInitiateRequiresDistinctCantripsAndSurvivesProcessDeath() throws Exception {
+    CharacterDraft d = draft();
+    d.background.deferred = false;
+    d.step = CharacterDraft.Step.BACKGROUND;
+    d.name = "Ada";
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    try (InputStream in = getClass().getResourceAsStream("/creation-catalog.json")) {
+      model.creation =
+          new org.json.JSONObject(
+              new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+    }
+    model.creationLoaded = true;
+    model.changed();
+    select(c, "Seleccionar trasfondo", 3);
+    find(c.get(), "Aplicar +1 a los tres").performClick();
+    find(c.get(), "Continuar").performClick();
+    find(c.get(), "Opción B · 50 po").performClick();
+    find(c.get(), "Continuar").performClick();
+    assertEquals(CharacterDraft.Step.ORIGIN_FEAT, d.step);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    select(c, "Característica de Iniciado en la magia", 3);
+    select(c, "Primer truco", 1);
+    select(c, "Segundo truco", 1);
+    select(c, "Conjuro de nivel 1", 1);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    select(c, "Segundo truco", 2);
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    java.util.Map<String, Object> payload = d.payload();
+    assertEquals(
+        "charisma",
+        new org.json.JSONObject(payload)
+            .getJSONObject("creation")
+            .getJSONObject("background")
+            .getJSONObject("originFeatChoice")
+            .getString("castingAbility"));
+    Bundle state = new Bundle();
+    c.saveInstanceState(state).pause().stop().destroy();
+    ActivityController<OfflineActivity> restored =
+        Robolectric.buildActivity(OfflineActivity.class).create(state).start().resume().visible();
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    CreationViewModel fresh = new ViewModelProvider(restored.get()).get(CreationViewModel.class);
+    assertEquals(payload, fresh.draft.payload());
+    assertTrue(find(restored.get(), "Continuar").isEnabled());
+    restored.pause().stop().destroy();
+  }
+
+  private void select(ActivityController<OfflineActivity> c, String label, int index) {
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    spinner(c.get().getWindow().getDecorView(), label).setSelection(index);
+    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+  }
+
   private Spinner spinner(View v, String description) {
     if (v instanceof Spinner && description.contentEquals(v.getContentDescription()))
       return (Spinner) v;

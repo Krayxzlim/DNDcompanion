@@ -33,6 +33,8 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     "¿Cómo obtenés tus atributos?",
     "Asigná tus atributos",
     "Elegí tu trasfondo",
+    "Prepará tu equipo",
+    "Completá tu dote de origen",
     "Conocé tu especie",
     "Conocé tu clase",
     "Dale una identidad",
@@ -137,10 +139,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         });
     root.addView(
         text(
-            "CREAR PERSONAJE · "
-                + (d.step.ordinal() + 1)
-                + " de "
-                + CharacterDraft.Step.values().length,
+            "CREAR PERSONAJE · " + (d.steps().indexOf(d.step) + 1) + " de " + d.steps().size(),
             14));
     root.addView(text(TITLES[d.step.ordinal()], 24));
     ScrollView scroll = new ScrollView(this);
@@ -165,6 +164,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         break;
       case BACKGROUND:
         background();
+        break;
+      case BACKGROUND_LOADOUT:
+        backgroundLoadout();
+        break;
+      case ORIGIN_FEAT:
+        originFeat();
         break;
       case SPECIES_GUIDE:
         speciesGuide();
@@ -630,6 +635,35 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                     allowed);
                 d.background.skillGrantsApplied =
                     model.creation != null && model.creation.optInt("backgroundSkillsVersion") == 1;
+                JSONArray toolOptions = row.optJSONArray("toolOptions");
+                if (model.creation.optInt("backgroundLoadoutVersion") == 1
+                    && toolOptions != null
+                    && toolOptions.length() > 0) {
+                  d.background.loadoutSupported = true;
+                  d.background.toolRequired = row.optBoolean("toolChoiceRequired");
+                  d.background.toolKeys = new String[toolOptions.length()];
+                  d.background.toolNames = new String[toolOptions.length()];
+                  for (int i = 0; i < toolOptions.length(); i++) {
+                    d.background.toolKeys[i] = toolOptions.optJSONObject(i).optString("key");
+                    d.background.toolNames[i] = toolOptions.optJSONObject(i).optString("name");
+                  }
+                  if (!d.background.toolRequired)
+                    d.background.toolChoice = d.background.toolKeys[0];
+                  d.background.packageDetails = row.optString("equipment");
+                  JSONArray equipment = row.optJSONArray("equipmentOptions");
+                  if (equipment != null && equipment.length() > 0)
+                    d.background.packageGold = equipment.optJSONObject(0).optInt("gold");
+                }
+                JSONObject feat = row.optJSONObject("originFeat");
+                if (model.creation.optInt("originFeatsVersion") == 1 && feat != null) {
+                  d.background.featSupported = true;
+                  d.background.featKey = feat.optString("key");
+                  d.background.featName = feat.optString("name");
+                  d.background.featDescription = feat.optString("description");
+                  d.background.featList = feat.optString("list");
+                  JSONArray spells = model.creation.optJSONArray("originSpells");
+                  if (spells != null) d.background.spellOptionsJson = spells.toString();
+                }
                 d.level = 1;
                 render();
               });
@@ -677,11 +711,14 @@ public class CrearPersonajeActivity extends AppCompatActivity {
       details("Beneficios del trasfondo", d.background.details);
       body.addView(
           text(
-              d.background.skillGrantsApplied
-                  ? "Se aplican los aumentos y las competencias de habilidad. Quedan pendientes la"
-                        + " dote, las herramientas y el equipo. Este flujo admite nivel 1."
-                  : "Se guardarán el trasfondo y sus aumentos. Sus demás beneficios quedan"
-                        + " pendientes de completar. Este flujo admite nivel 1.",
+              d.background.loadoutSupported
+                  ? "Se aplican los aumentos y las competencias de habilidad. A continuación"
+                      + " elegirás herramientas, equipo y la dote de origen."
+                  : d.background.skillGrantsApplied
+                      ? "Se aplican los aumentos y las competencias de habilidad. Quedan pendientes"
+                          + " la dote, las herramientas y el equipo. Este flujo admite nivel 1."
+                      : "Se guardarán el trasfondo y sus aumentos. Sus demás beneficios quedan"
+                          + " pendientes de completar. Este flujo admite nivel 1.",
               14));
     }
     if (d.background.deferred)
@@ -694,6 +731,139 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                 d.background.defer();
                 render();
               }));
+  }
+
+  private void backgroundLoadout() {
+    body.addView(text(d.background.name, 20));
+    body.addView(
+        text(
+            "Elegí tu equipo inicial. La competencia con herramientas se conserva aunque elijas el"
+                + " oro.",
+            16));
+    if (d.background.toolRequired) {
+      String[] names = new String[d.background.toolNames.length + 1];
+      names[0] = "Elegí un juego";
+      System.arraycopy(d.background.toolNames, 0, names, 1, d.background.toolNames.length);
+      int selected = Arrays.asList(d.background.toolKeys).indexOf(d.background.toolChoice) + 1;
+      Spinner tool =
+          spinner(
+              names,
+              selected,
+              value -> {
+                String key = value == 0 ? "" : d.background.toolKeys[value - 1];
+                if (!key.equals(d.background.toolChoice)) {
+                  d.background.toolChoice = key;
+                  render();
+                }
+              });
+      tool.setContentDescription("Herramienta del trasfondo");
+      body.addView(tool);
+    } else if (d.background.toolNames.length > 0)
+      body.addView(text("Competencia: " + d.background.toolNames[0], 16));
+    for (String option : new String[] {"A", "B"}) {
+      String label =
+          option.equals("A")
+              ? "Paquete A · " + d.background.packageGold + " po"
+              : "Opción B · 50 po";
+      body.addView(
+          button(
+              (option.equals(d.background.equipmentOption) ? "✓ " : "") + label,
+              () -> {
+                d.background.equipmentOption = option;
+                render();
+              }));
+    }
+    details("Ver contenido del paquete", d.background.packageDetails);
+    body.addView(
+        text(
+            "Se agrega al inventario una sola vez al crear. Las armas quedan sin equipar; revisá su"
+                + " competencia y propiedades antes de usarlas.",
+            14));
+  }
+
+  private void originFeat() {
+    body.addView(text(d.background.featName, 20));
+    body.addView(text(d.background.featDescription, 16));
+    if (!d.background.featKey.equals("magicInitiate")) return;
+    String[] keys = {"", "intelligence", "wisdom", "charisma"};
+    body.addView(text("Característica para estos conjuros", 16));
+    Spinner ability =
+        spinner(
+            new String[] {"Elegí una característica", "Inteligencia", "Sabiduría", "Carisma"},
+            Arrays.asList(keys).indexOf(d.background.castingAbility),
+            i -> {
+              if (!keys[i].equals(d.background.castingAbility)) {
+                d.background.castingAbility = keys[i];
+                render();
+              }
+            });
+    ability.setContentDescription("Característica de Iniciado en la magia");
+    body.addView(ability);
+    featSpellSelector("Primer truco", 0, 0);
+    featSpellSelector("Segundo truco", 0, 1);
+    featSpellSelector("Conjuro de nivel 1", 1, 2);
+    if (!d.background.featValid())
+      body.addView(
+          text("Elegí una característica, dos trucos distintos y un conjuro de nivel 1.", 14));
+  }
+
+  private void featSpellSelector(String label, int level, int slot) {
+    List<JSONObject> options = new ArrayList<>();
+    try {
+      JSONArray spells = new JSONArray(d.background.spellOptionsJson);
+      for (int i = 0; i < spells.length(); i++) {
+        JSONObject spell = spells.optJSONObject(i);
+        if (spell != null
+            && spell.optInt("level") == level
+            && spell.optJSONArray("lists") != null
+            && spell.optJSONArray("lists").toString().contains("\"" + d.background.featList + "\""))
+          options.add(spell);
+      }
+    } catch (org.json.JSONException ignored) {
+    }
+    String current =
+        slot == 0 ? d.background.cantrip1 : slot == 1 ? d.background.cantrip2 : d.background.spell;
+    String[] names = new String[options.size() + 1];
+    names[0] = "Elegir…";
+    int selected = 0;
+    for (int i = 0; i < options.size(); i++) {
+      names[i + 1] = options.get(i).optString("name");
+      if (options.get(i).optString("key").equals(current)) selected = i + 1;
+    }
+    body.addView(text(label, 16));
+    Spinner selector =
+        spinner(
+            names,
+            selected,
+            i -> {
+              String key = i == 0 ? "" : options.get(i - 1).optString("key");
+              if (!key.equals(current)) {
+                if (slot == 0) d.background.cantrip1 = key;
+                else if (slot == 1) d.background.cantrip2 = key;
+                else d.background.spell = key;
+                render();
+              }
+            });
+    selector.setContentDescription(label);
+    body.addView(selector);
+    if (selected > 0) {
+      JSONObject spell = options.get(selected - 1);
+      details(
+          "Detalles de " + spell.optString("name"),
+          spell.optString("description") + "\n" + spell.optString("source"));
+    }
+  }
+
+  private String spellName(String key) {
+    try {
+      JSONArray spells = new JSONArray(d.background.spellOptionsJson);
+      for (int i = 0; i < spells.length(); i++) {
+        JSONObject spell = spells.optJSONObject(i);
+        if (spell != null && key.equals(spell.optString("key"))) return spell.optString("name");
+      }
+    } catch (org.json.JSONException ignored) {
+    }
+    return key;
   }
 
   private void speciesGuide() {
@@ -771,6 +941,31 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                 + CharacterDraft.ALIGNMENTS[d.alignment],
             18));
     if (!d.background.key.isEmpty()) body.addView(text("Trasfondo: " + d.background.name, 18));
+    if (d.background.loadoutSupported)
+      body.addView(
+          text(
+              "Equipo: "
+                  + (d.background.equipmentOption.equals("A") ? "Paquete A" : "50 po")
+                  + " · Herramienta: "
+                  + d.background
+                      .toolNames[
+                      Arrays.asList(d.background.toolKeys).indexOf(d.background.toolChoice)],
+              16));
+    if (d.background.featSupported) {
+      body.addView(text("Dote: " + d.background.featName, 18));
+      if (d.background.featKey.equals("magicInitiate"))
+        body.addView(
+            text(
+                spellName(d.background.cantrip1)
+                    + " · "
+                    + spellName(d.background.cantrip2)
+                    + " · "
+                    + spellName(d.background.spell)
+                    + "\nCaracterística: "
+                    + CharacterDraft.ABILITIES[
+                        CreationViewModel.abilityIndex(d.background.castingAbility)],
+                16));
+    }
     for (int i = 0; i < 6; i++) {
       String score =
           d.background.key.isEmpty()

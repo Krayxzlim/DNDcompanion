@@ -11,6 +11,8 @@ public final class CharacterDraft implements Serializable {
     METHOD,
     ALLOCATION,
     BACKGROUND,
+    BACKGROUND_LOADOUT,
+    ORIGIN_FEAT,
     SPECIES_GUIDE,
     CLASS_GUIDE,
     IDENTITY,
@@ -85,6 +87,10 @@ public final class CharacterDraft implements Serializable {
         return abilities.complete();
       case BACKGROUND:
         return background.deferred || background.valid();
+      case BACKGROUND_LOADOUT:
+        return background.loadoutValid();
+      case ORIGIN_FEAT:
+        return background.featValid();
       case IDENTITY:
         return !name.trim().isEmpty();
       default:
@@ -92,12 +98,26 @@ public final class CharacterDraft implements Serializable {
     }
   }
 
+  public java.util.List<Step> steps() {
+    java.util.List<Step> result = new java.util.ArrayList<>();
+    for (Step value : Step.values()) {
+      if (value == Step.BACKGROUND_LOADOUT
+          && (background.key.isEmpty() || !background.loadoutSupported)) continue;
+      if (value == Step.ORIGIN_FEAT && (background.key.isEmpty() || !background.featSupported))
+        continue;
+      result.add(value);
+    }
+    return result;
+  }
+
   public void next() {
-    if (canAdvance() && step != Step.REVIEW) step = Step.values()[step.ordinal() + 1];
+    java.util.List<Step> steps = steps();
+    if (canAdvance() && step != Step.REVIEW) step = steps.get(steps.indexOf(step) + 1);
   }
 
   public void back() {
-    if (step.ordinal() > 0) step = Step.values()[step.ordinal() - 1];
+    java.util.List<Step> steps = steps();
+    if (steps.indexOf(step) > 0) step = steps.get(steps.indexOf(step) - 1);
   }
 
   public Map<String, Object> payload() {
@@ -109,7 +129,11 @@ public final class CharacterDraft implements Serializable {
         || !abilities.complete()
         || level < 1
         || level > 20
-        || (!background.key.isEmpty() && (!background.valid() || level != 1)))
+        || (!background.key.isEmpty()
+            && (!background.valid()
+                || !background.loadoutValid()
+                || !background.featValid()
+                || level != 1)))
       throw new IllegalStateException("Completá los pasos antes de crear.");
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("name", name.trim());
@@ -147,6 +171,17 @@ public final class CharacterDraft implements Serializable {
       Map<String, Object> choice = new LinkedHashMap<>();
       choice.put("key", background.key);
       choice.put("increases", increases);
+      if (background.loadoutSupported) {
+        choice.put("equipmentOption", background.equipmentOption);
+        choice.put("toolChoice", background.toolChoice);
+      }
+      if (background.featSupported && background.featKey.equals("magicInitiate")) {
+        Map<String, Object> feat = new LinkedHashMap<>();
+        feat.put("castingAbility", background.castingAbility);
+        feat.put("cantrips", java.util.Arrays.asList(background.cantrip1, background.cantrip2));
+        feat.put("spell", background.spell);
+        choice.put("originFeatChoice", feat);
+      }
       creation.put("background", choice);
       result.put("creation", creation);
     }
