@@ -954,6 +954,16 @@ public class MainActivity extends AppCompatActivity {
           array(s, "saveProficiencies")
               .toString()
               .contains("\"" + ability.optString("key") + "\""));
+      if (ability.optBoolean("classProficient")) {
+        check.setText(
+            "Competencia de "
+                + ability.optString("classSource")
+                + ": "
+                + ability.optString("label"));
+        check.setChecked(true);
+        check.setEnabled(false);
+        check.setTag(Boolean.TRUE);
+      }
       saves.add(check);
       form.addView(check);
     }
@@ -992,7 +1002,7 @@ public class MainActivity extends AppCompatActivity {
                       }
                       JSONArray saveKeys = new JSONArray();
                       for (int i = 0; i < saves.size(); i++)
-                        if (saves.get(i).isChecked())
+                        if (saves.get(i).isChecked() && !Boolean.TRUE.equals(saves.get(i).getTag()))
                           saveKeys.put(abilities.optJSONObject(i).optString("key"));
                       for (int i = 0; i < ranks.size(); i++)
                         try {

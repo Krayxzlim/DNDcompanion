@@ -70,3 +70,9 @@ Sin estas capacidades se conserva el flujo anterior. Las fichas antiguas no reci
 Con `classSkillsVersion: 1` y un trasfondo elegido, el asistente agrega un paso después de la guía de clase. Permite seleccionar exactamente el cupo indicado entre las opciones de esa clase, conserva elecciones tras recreación del proceso y las limpia al cambiar de clase. El resumen enumera las habilidades elegidas y la ficha muestra su procedencia. El bono no se duplica con el del trasfondo; la configuración conserva las concesiones.
 
 El contrato anterior se conserva si se difiere el trasfondo o la API no anuncia la capacidad. Pericia, sustituciones de habilidades duplicadas y demás decisiones de clase siguen pendientes.
+
+## Base de clase de nivel 1
+
+Con `classBasicsVersion: 1`, el resumen muestra PV base (máximo del dado + Constitución final, mínimo 1) y salvaciones concedidas. La API inicializa esos PV una sola vez y conserva su fuente. La configuración de salvaciones identifica las concesiones de clase y evita borrarlas o convertirlas en una segunda fuente manual.
+
+Los aumentos por especie, dotes u otras fuentes todavía deben revisarse al completar la ficha. El cálculo mostrado no certifica el máximo definitivo ni habilita automáticamente una ficha incompleta. No modifica personajes anteriores.

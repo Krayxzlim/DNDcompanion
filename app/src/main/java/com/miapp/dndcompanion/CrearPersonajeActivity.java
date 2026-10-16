@@ -122,6 +122,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
 
   private void render() {
     syncClassSkills();
+    JSONObject basics = model.selectedClass();
+    if (basics != null && model.creation.optInt("classBasicsVersion") == 1) {
+      d.basicsClassKey = basics.optString("key");
+      d.initialHitDie = basics.optInt("hitDie");
+      d.initialSaves = abilities(basics.optJSONArray("savingThrows"));
+    }
     View focused = root != null && renderedStep == d.step ? focus(root) : null;
     String focusKey = focused == null ? null : focusKey(focused);
     boolean accessibilityFocus = focused != null && focused.isAccessibilityFocused();
@@ -989,6 +995,22 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void review() {
+    if (d.hasClassBasics()) {
+      body.addView(
+          text(
+              "PV base de nivel 1: "
+                  + d.initialBaseHp()
+                  + " ("
+                  + d.initialHitDie
+                  + " + Constitución)",
+              18));
+      body.addView(text("Salvaciones de clase: " + d.initialSaves, 16));
+      body.addView(
+          text(
+              "Los PV se cargan una vez al crear. Revisá los rasgos de especie y otras fuentes que"
+                  + " puedan aumentarlos antes de completar la ficha.",
+              14));
+    }
     if (model.uncertainSubmission) {
       body.addView(
           text(

@@ -48,6 +48,21 @@ public final class CharacterDraft implements Serializable {
     "sorcerer",
     "warlock"
   };
+  public String basicsClassKey = "", initialSaves = "";
+  public int initialHitDie;
+
+  public boolean hasClassBasics() {
+    return !background.key.isEmpty()
+        && classIndex >= 0
+        && classIndex < CLASS_KEYS.length
+        && basicsClassKey.equals(CLASS_KEYS[classIndex])
+        && initialHitDie > 0;
+  }
+
+  public int initialBaseHp() {
+    return Math.max(1, initialHitDie + Math.floorDiv(finalScore(2) - 10, 2));
+  }
+
   public final ClassSkillChoice classSkills = new ClassSkillChoice();
 
   public boolean hasClassSkills() {

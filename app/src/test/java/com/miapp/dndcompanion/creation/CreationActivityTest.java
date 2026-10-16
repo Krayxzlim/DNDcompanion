@@ -422,6 +422,26 @@ public class CreationActivityTest {
     restored.pause().stop().destroy();
   }
 
+  @Test
+  public void reviewShowsInitialBaseHpUsingFinalConstitutionAndClassSaves() {
+    CharacterDraft d = draft();
+    d.background.select("srd-2024_sage", "Sabio", "", new int[] {2, 3, 4});
+    d.background.increases[2] = 1;
+    d.background.increases[3] = 2;
+    d.basicsClassKey = "wizard";
+    d.initialHitDie = 6;
+    d.initialSaves = "Inteligencia, Sabiduría";
+    d.name = "Ada";
+    d.step = CharacterDraft.Step.REVIEW;
+    ActivityController<OfflineActivity> c = start(d);
+    assertEquals(8, d.initialBaseHp());
+    assertNotNull(find(c.get(), "PV base de nivel 1: 8 (6 + Constitución)"));
+    assertNotNull(find(c.get(), "Salvaciones de clase: Inteligencia, Sabiduría"));
+    d.classIndex = 0;
+    assertFalse(d.hasClassBasics());
+    c.pause().stop().destroy();
+  }
+
   private void select(ActivityController<OfflineActivity> c, String label, int index) {
     Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     spinner(c.get().getWindow().getDecorView(), label).setSelection(index);
