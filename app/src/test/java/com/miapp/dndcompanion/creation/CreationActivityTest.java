@@ -376,6 +376,52 @@ public class CreationActivityTest {
     restored.pause().stop().destroy();
   }
 
+  @Test
+  public void classSkillsRequireExactCountPersistAndResetOnClassChange() throws Exception {
+    CharacterDraft d = draft();
+    d.background.select("srd-2024_sage", "Sabio", "", new int[] {2, 3, 4});
+    d.background.increases[2] = 1;
+    d.background.increases[3] = 2;
+    d.name = "Ada";
+    d.step = CharacterDraft.Step.CLASS_GUIDE;
+    ActivityController<OfflineActivity> c = start(d);
+    CreationViewModel model = new ViewModelProvider(c.get()).get(CreationViewModel.class);
+    try (InputStream in = getClass().getResourceAsStream("/creation-catalog.json")) {
+      model.creation =
+          new org.json.JSONObject(
+                  new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8))
+              .put("classSkillsVersion", 1);
+    }
+    model.creationLoaded = true;
+    model.changed();
+    find(c.get(), "Continuar").performClick();
+    assertEquals(CharacterDraft.Step.CLASS_SKILLS, d.step);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    find(c.get(), "Conocimiento arcano").performClick();
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    find(c.get(), "Investigación").performClick();
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    assertFalse(find(c.get(), "Historia").isEnabled());
+    java.util.Map<String, Object> payload = d.payload();
+    Bundle state = new Bundle();
+    c.saveInstanceState(state).pause().stop().destroy();
+    ActivityController<OfflineActivity> restored =
+        Robolectric.buildActivity(OfflineActivity.class).create(state).start().resume().visible();
+    CreationViewModel fresh = new ViewModelProvider(restored.get()).get(CreationViewModel.class);
+    assertEquals(payload, fresh.draft.payload());
+    assertTrue(find(restored.get(), "Continuar").isEnabled());
+    find(restored.get(), "Conocimiento arcano").performClick();
+    assertFalse(find(restored.get(), "Continuar").isEnabled());
+    assertTrue(find(restored.get(), "Historia").isEnabled());
+    fresh.creation = model.creation;
+    fresh.draft.step = CharacterDraft.Step.CLASS;
+    fresh.changed();
+    select(restored, "Seleccionar clase", 2);
+    assertTrue(fresh.draft.classSkills.selected.isEmpty());
+    assertEquals(3, fresh.draft.classSkills.count);
+    restored.pause().stop().destroy();
+  }
+
   private void select(ActivityController<OfflineActivity> c, String label, int index) {
     Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     spinner(c.get().getWindow().getDecorView(), label).setSelection(index);

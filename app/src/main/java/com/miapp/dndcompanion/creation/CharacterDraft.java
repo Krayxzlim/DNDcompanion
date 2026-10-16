@@ -15,6 +15,7 @@ public final class CharacterDraft implements Serializable {
     ORIGIN_FEAT,
     SPECIES_GUIDE,
     CLASS_GUIDE,
+    CLASS_SKILLS,
     IDENTITY,
     REVIEW
   }
@@ -47,6 +48,16 @@ public final class CharacterDraft implements Serializable {
     "sorcerer",
     "warlock"
   };
+  public final ClassSkillChoice classSkills = new ClassSkillChoice();
+
+  public boolean hasClassSkills() {
+    return !background.key.isEmpty()
+        && classIndex >= 0
+        && classIndex < CLASS_KEYS.length
+        && classSkills.classKey.equals(CLASS_KEYS[classIndex])
+        && classSkills.count > 0;
+  }
+
   public final BackgroundChoice background = new BackgroundChoice();
 
   public int finalScore(int index) {
@@ -91,6 +102,8 @@ public final class CharacterDraft implements Serializable {
         return background.loadoutValid();
       case ORIGIN_FEAT:
         return background.featValid();
+      case CLASS_SKILLS:
+        return classSkills.valid();
       case IDENTITY:
         return !name.trim().isEmpty();
       default:
@@ -101,6 +114,7 @@ public final class CharacterDraft implements Serializable {
   public java.util.List<Step> steps() {
     java.util.List<Step> result = new java.util.ArrayList<>();
     for (Step value : Step.values()) {
+      if (value == Step.CLASS_SKILLS && !hasClassSkills()) continue;
       if (value == Step.BACKGROUND_LOADOUT
           && (background.key.isEmpty() || !background.loadoutSupported)) continue;
       if (value == Step.ORIGIN_FEAT && (background.key.isEmpty() || !background.featSupported))
@@ -127,6 +141,7 @@ public final class CharacterDraft implements Serializable {
         || name.trim().isEmpty()
         || name.trim().length() > 160
         || !abilities.complete()
+        || (hasClassSkills() && !classSkills.valid())
         || level < 1
         || level > 20
         || (!background.key.isEmpty()
@@ -182,6 +197,8 @@ public final class CharacterDraft implements Serializable {
         feat.put("spell", background.spell);
         choice.put("originFeatChoice", feat);
       }
+      if (hasClassSkills())
+        creation.put("classSkills", new java.util.ArrayList<>(classSkills.selected));
       creation.put("background", choice);
       result.put("creation", creation);
     }

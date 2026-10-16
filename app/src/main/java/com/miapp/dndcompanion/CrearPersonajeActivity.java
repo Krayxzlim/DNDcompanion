@@ -37,6 +37,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     "Completá tu dote de origen",
     "Conocé tu especie",
     "Conocé tu clase",
+    "Elegí tus habilidades",
     "Dale una identidad",
     "Revisá tu personaje"
   };
@@ -120,6 +121,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void render() {
+    syncClassSkills();
     View focused = root != null && renderedStep == d.step ? focus(root) : null;
     String focusKey = focused == null ? null : focusKey(focused);
     boolean accessibilityFocus = focused != null && focused.isAccessibilityFocused();
@@ -176,6 +178,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         break;
       case CLASS_GUIDE:
         classGuide();
+        break;
+      case CLASS_SKILLS:
+        classSkills();
         break;
       case IDENTITY:
         identity();
@@ -309,6 +314,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
             d.classIndex + 1,
             position -> {
               if (d.classIndex == position - 1) return;
+              d.classSkills.clear();
               d.classIndex = position - 1;
               render();
             });
@@ -881,9 +887,71 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     body.addView(
         text(
             "Guía de nivel 1 · D&D 2024. Este creador guarda la ficha base; las elecciones de"
-                + " conjuros, competencias y rasgos quedan para completar después. Para niveles"
-                + " superiores, consultá la progresión de tu clase.",
+                + " conjuros y rasgos quedan para completar después. Las habilidades de clase"
+                + " tienen un paso propio si elegiste trasfondo y el catálogo lo permite. Para"
+                + " niveles superiores, consultá la progresión de tu clase.",
             14));
+  }
+
+  private void syncClassSkills() {
+    JSONObject row = model.selectedClass();
+    if (row == null || model.creation.optInt("classSkillsVersion") != 1) return;
+    String key = row.optString("key");
+    if (!d.classSkills.classKey.equals(key)) d.classSkills.clear();
+    JSONObject choices = row.optJSONObject("skillChoices");
+    if (choices == null) return;
+    d.classSkills.classKey = key;
+    d.classSkills.count = choices.optInt("count");
+    d.classSkills.keys.clear();
+    d.classSkills.names.clear();
+    JSONArray options = choices.optJSONArray("options"),
+        labels = model.creation.optJSONArray("skills");
+    if (options == null || labels == null) return;
+    for (int i = 0; i < options.length(); i++) {
+      String option = options.optString(i);
+      for (int j = 0; j < labels.length(); j++) {
+        JSONObject label = labels.optJSONObject(j);
+        if (label != null && option.equals(label.optString("key"))) {
+          d.classSkills.keys.add(option);
+          d.classSkills.names.add(label.optString("name"));
+          break;
+        }
+      }
+    }
+  }
+
+  private void classSkills() {
+    body.addView(
+        text(
+            "Elegí "
+                + d.classSkills.count
+                + " habilidades de "
+                + CharacterDraft.CLASSES[d.classIndex]
+                + ".",
+            18));
+    body.addView(
+        text("Seleccionadas: " + d.classSkills.selected.size() + " de " + d.classSkills.count, 16));
+    body.addView(
+        text(
+            "Si una habilidad también viene del trasfondo, su bono no se duplica. La pericia se"
+                + " elige por separado cuando un rasgo la permite.",
+            14));
+    for (int i = 0; i < d.classSkills.keys.size(); i++) {
+      String key = d.classSkills.keys.get(i);
+      CheckBox choice = new CheckBox(this);
+      choice.setText(d.classSkills.names.get(i));
+      choice.setTextColor(getColor(R.color.texto));
+      choice.setMinHeight(dp(48));
+      choice.setChecked(d.classSkills.selected.contains(key));
+      choice.setEnabled(choice.isChecked() || d.classSkills.selected.size() < d.classSkills.count);
+      choice.setOnCheckedChangeListener(
+          (button, checked) -> {
+            if (checked) d.classSkills.selected.add(key);
+            else d.classSkills.selected.remove(key);
+            render();
+          });
+      body.addView(choice);
+    }
   }
 
   private void identity() {
@@ -965,6 +1033,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                     + CharacterDraft.ABILITIES[
                         CreationViewModel.abilityIndex(d.background.castingAbility)],
                 16));
+    }
+    if (d.hasClassSkills()) {
+      java.util.List<String> names = new ArrayList<>();
+      for (String key : d.classSkills.selected)
+        names.add(d.classSkills.names.get(d.classSkills.keys.indexOf(key)));
+      body.addView(text("Habilidades de clase: " + String.join(", ", names), 16));
     }
     for (int i = 0; i < 6; i++) {
       String score =

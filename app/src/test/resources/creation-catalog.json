@@ -45,6 +45,18 @@
   "classes": [
     {
       "key": "barbarian",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "animalHandling",
+          "athletics",
+          "intimidation",
+          "nature",
+          "perception",
+          "survival"
+        ],
+        "source": "srd-2024_barbarian_core-traits"
+      },
       "name": "Bárbaro",
       "description": "Combatiente resistente que canaliza su furia.",
       "primaryAbilities": [
@@ -83,6 +95,30 @@
     },
     {
       "key": "bard",
+      "skillChoices": {
+        "count": 3,
+        "options": [
+          "athletics",
+          "acrobatics",
+          "sleightOfHand",
+          "stealth",
+          "arcana",
+          "history",
+          "investigation",
+          "nature",
+          "religion",
+          "animalHandling",
+          "insight",
+          "medicine",
+          "perception",
+          "survival",
+          "deception",
+          "intimidation",
+          "performance",
+          "persuasion"
+        ],
+        "source": "srd-2024_bard_core-traits"
+      },
       "name": "Bardo",
       "description": "Artista que inspira a sus aliados y utiliza magia.",
       "primaryAbilities": [
@@ -117,6 +153,17 @@
     },
     {
       "key": "cleric",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "history",
+          "insight",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "source": "srd-2024_cleric_core-traits"
+      },
       "name": "Clérigo",
       "description": "Devoto que combina magia divina y apoyo al grupo.",
       "primaryAbilities": [
@@ -151,6 +198,20 @@
     },
     {
       "key": "druid",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "animalHandling",
+          "arcana",
+          "insight",
+          "medicine",
+          "nature",
+          "perception",
+          "religion",
+          "survival"
+        ],
+        "source": "srd-2024_druid_core-traits"
+      },
       "name": "Druida",
       "description": "Guardián de la naturaleza con magia y transformación.",
       "primaryAbilities": [
@@ -189,6 +250,21 @@
     },
     {
       "key": "fighter",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "acrobatics",
+          "animalHandling",
+          "athletics",
+          "history",
+          "insight",
+          "intimidation",
+          "persuasion",
+          "perception",
+          "survival"
+        ],
+        "source": "srd-2024_fighter_core-traits"
+      },
       "name": "Guerrero",
       "description": "Especialista en armas y técnicas de combate.",
       "primaryAbilities": [
@@ -228,6 +304,18 @@
     },
     {
       "key": "monk",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "history",
+          "insight",
+          "religion",
+          "stealth"
+        ],
+        "source": "srd-2024_monk_core-traits"
+      },
       "name": "Monje",
       "description": "Combatiente ágil que desarrolla cuerpo y disciplina.",
       "primaryAbilities": [
@@ -263,6 +351,18 @@
     },
     {
       "key": "paladin",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "athletics",
+          "insight",
+          "intimidation",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "source": "srd-2024_paladin_core-traits"
+      },
       "name": "Paladín",
       "description": "Guerrero que combina armas, protección y magia divina.",
       "primaryAbilities": [
@@ -302,6 +402,20 @@
     },
     {
       "key": "ranger",
+      "skillChoices": {
+        "count": 3,
+        "options": [
+          "animalHandling",
+          "athletics",
+          "insight",
+          "investigation",
+          "nature",
+          "perception",
+          "stealth",
+          "survival"
+        ],
+        "source": "srd-2024_ranger_core-traits"
+      },
       "name": "Explorador",
       "description": "Explorador que combina armas y magia de la naturaleza.",
       "primaryAbilities": [
@@ -341,6 +455,22 @@
     },
     {
       "key": "rogue",
+      "skillChoices": {
+        "count": 4,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "deception",
+          "insight",
+          "intimidation",
+          "investigation",
+          "perception",
+          "persuasion",
+          "sleightOfHand",
+          "stealth"
+        ],
+        "source": "srd-2024_rogue_core-traits"
+      },
       "name": "Pícaro",
       "description": "Especialista en habilidades, sigilo y ataques precisos.",
       "primaryAbilities": [
@@ -383,6 +513,18 @@
     },
     {
       "key": "sorcerer",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "insight",
+          "intimidation",
+          "persuasion",
+          "religion"
+        ],
+        "source": "srd-2024_sorcerer_core-traits"
+      },
       "name": "Hechicero",
       "description": "Lanzador de conjuros que desarrolla su magia innata.",
       "primaryAbilities": [
@@ -417,6 +559,19 @@
     },
     {
       "key": "warlock",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "history",
+          "intimidation",
+          "investigation",
+          "nature",
+          "religion"
+        ],
+        "source": "srd-2024_warlock_core-traits"
+      },
       "name": "Brujo",
       "description": "Lanzador de conjuros con magia de pacto e invocaciones.",
       "primaryAbilities": [
@@ -451,6 +606,19 @@
     },
     {
       "key": "wizard",
+      "skillChoices": {
+        "count": 2,
+        "options": [
+          "arcana",
+          "history",
+          "insight",
+          "investigation",
+          "medicine",
+          "nature",
+          "religion"
+        ],
+        "source": "srd-2024_wizard_core-traits"
+      },
       "name": "Mago",
       "description": "Estudioso de la magia que reúne conjuros en su libro.",
       "primaryAbilities": [
@@ -1817,6 +1985,80 @@
       "tools": "Choose one kind of Gaming Set",
       "equipment": "*Choose A or B:* (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Healer's Kit, Quiver, Traveler's Clothes, 14 GP; or (B) 50 GP",
       "source": "Open5e · SRD 2024 · srd-2024_soldier"
+    }
+  ],
+  "skills": [
+    {
+      "key": "athletics",
+      "name": "Atletismo"
+    },
+    {
+      "key": "acrobatics",
+      "name": "Acrobacias"
+    },
+    {
+      "key": "sleightOfHand",
+      "name": "Juego de manos"
+    },
+    {
+      "key": "stealth",
+      "name": "Sigilo"
+    },
+    {
+      "key": "arcana",
+      "name": "Conocimiento arcano"
+    },
+    {
+      "key": "history",
+      "name": "Historia"
+    },
+    {
+      "key": "investigation",
+      "name": "Investigación"
+    },
+    {
+      "key": "nature",
+      "name": "Naturaleza"
+    },
+    {
+      "key": "religion",
+      "name": "Religión"
+    },
+    {
+      "key": "animalHandling",
+      "name": "Trato con animales"
+    },
+    {
+      "key": "insight",
+      "name": "Perspicacia"
+    },
+    {
+      "key": "medicine",
+      "name": "Medicina"
+    },
+    {
+      "key": "perception",
+      "name": "Percepción"
+    },
+    {
+      "key": "survival",
+      "name": "Supervivencia"
+    },
+    {
+      "key": "deception",
+      "name": "Engaño"
+    },
+    {
+      "key": "intimidation",
+      "name": "Intimidación"
+    },
+    {
+      "key": "performance",
+      "name": "Interpretación"
+    },
+    {
+      "key": "persuasion",
+      "name": "Persuasión"
     }
   ]
 }

@@ -64,3 +64,9 @@ Con las capacidades `backgroundLoadoutVersion` y `originFeatsVersion` de la API,
 La ficha permite pruebas de herramientas, administrar monedas e iniciativa. El grimorio ofrece el lanzamiento gratuito de la dote y muestra su disponibilidad; un descanso largo válido lo recupera. Atacante salvaje exige declarar el turno y confirmar el impacto/critico; los objetivos y modificadores se resuelven en la mesa. Los conjuros concedidos quedan protegidos frente al editor genérico.
 
 Sin estas capacidades se conserva el flujo anterior. Las fichas antiguas no reciben concesiones retroactivas. Siguen pendientes elecciones completas de clase/especie, progresión y reemplazos de conjuros de la dote al subir de nivel. Esta entrega usa el catálogo SRD, no todo el Manual del Jugador.
+
+## Habilidades iniciales de clase
+
+Con `classSkillsVersion: 1` y un trasfondo elegido, el asistente agrega un paso después de la guía de clase. Permite seleccionar exactamente el cupo indicado entre las opciones de esa clase, conserva elecciones tras recreación del proceso y las limpia al cambiar de clase. El resumen enumera las habilidades elegidas y la ficha muestra su procedencia. El bono no se duplica con el del trasfondo; la configuración conserva las concesiones.
+
+El contrato anterior se conserva si se difiere el trasfondo o la API no anuncia la capacidad. Pericia, sustituciones de habilidades duplicadas y demás decisiones de clase siguen pendientes.
