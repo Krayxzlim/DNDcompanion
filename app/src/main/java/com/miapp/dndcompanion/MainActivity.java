@@ -936,7 +936,13 @@ public class MainActivity extends AppCompatActivity {
               this,
               android.R.layout.simple_spinner_dropdown_item,
               (skill.optInt("backgroundRank") > 0 || skill.optInt("classRank") > 0)
-                  ? new String[] {"Concedida (competente)", "Competencia adicional", "Pericia"}
+                  ? new String[] {
+                    skill.optInt("classRank") == 2
+                        ? "Concedida (pericia)"
+                        : "Concedida (competente)",
+                    "Competencia adicional",
+                    "Pericia"
+                  }
                   : new String[] {"Sin competencia", "Competencia", "Pericia"}));
       sp.setSelection(skill.optInt("configuredRank", skill.optInt("rank")));
       row.addView(sp);

@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public final class BackgroundChoice implements Serializable {
+  public final java.util.List<String> skillKeys = new java.util.ArrayList<>();
   public String key = "", name = "", details = "";
   public int[] allowed = new int[0];
   public final int[] increases = new int[6];
@@ -42,6 +43,7 @@ public final class BackgroundChoice implements Serializable {
     this.allowed = allowed.clone();
     deferred = false;
     skillGrantsApplied = false;
+    skillKeys.clear();
     featSupported = false;
     featKey = "";
     featName = "";

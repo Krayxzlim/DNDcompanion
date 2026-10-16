@@ -76,3 +76,9 @@ El contrato anterior se conserva si se difiere el trasfondo o la API no anuncia 
 Con `classBasicsVersion: 1`, el resumen muestra PV base (máximo del dado + Constitución final, mínimo 1) y salvaciones concedidas. La API inicializa esos PV una sola vez y conserva su fuente. La configuración de salvaciones identifica las concesiones de clase y evita borrarlas o convertirlas en una segunda fuente manual.
 
 Los aumentos por especie, dotes u otras fuentes todavía deben revisarse al completar la ficha. El cálculo mostrado no certifica el máximo definitivo ni habilita automáticamente una ficha incompleta. No modifica personajes anteriores.
+
+## Pericia del pícaro
+
+Con `rogueExpertiseVersion: 1`, el pícaro recibe un paso después de elegir habilidades de clase. Ofrece solamente las competencias concedidas por clase o trasfondo y exige dos elecciones distintas. La explicación distingue duplicar competencia de duplicar el modificador completo. El resumen enumera las pericias; la ficha conserva su concesión al configurar habilidades.
+
+Cambiar las habilidades o el trasfondo quita las pericias que dejan de ser elegibles. Cambiar de clase limpia todas las elecciones de clase. Las decisiones válidas sobreviven a la recreación del proceso. Las pericias de otras clases o niveles todavía no están implementadas.

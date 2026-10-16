@@ -16,6 +16,7 @@ public final class CharacterDraft implements Serializable {
     SPECIES_GUIDE,
     CLASS_GUIDE,
     CLASS_SKILLS,
+    EXPERTISE,
     IDENTITY,
     REVIEW
   }
@@ -73,6 +74,22 @@ public final class CharacterDraft implements Serializable {
         && classSkills.count > 0;
   }
 
+  public boolean hasExpertise() {
+    return hasClassSkills() && classSkills.expertiseEnabled && classSkills.classKey.equals("rogue");
+  }
+
+  public java.util.List<String> expertiseOptions() {
+    java.util.Set<String> keys = new java.util.LinkedHashSet<>(classSkills.selected);
+    if (background.skillGrantsApplied) keys.addAll(background.skillKeys);
+    return new java.util.ArrayList<>(keys);
+  }
+
+  public boolean expertiseValid() {
+    return classSkills.expertise.size() == 2
+        && new java.util.HashSet<>(classSkills.expertise).size() == 2
+        && expertiseOptions().containsAll(classSkills.expertise);
+  }
+
   public final BackgroundChoice background = new BackgroundChoice();
 
   public int finalScore(int index) {
@@ -117,6 +134,8 @@ public final class CharacterDraft implements Serializable {
         return background.loadoutValid();
       case ORIGIN_FEAT:
         return background.featValid();
+      case EXPERTISE:
+        return expertiseValid();
       case CLASS_SKILLS:
         return classSkills.valid();
       case IDENTITY:
@@ -129,6 +148,7 @@ public final class CharacterDraft implements Serializable {
   public java.util.List<Step> steps() {
     java.util.List<Step> result = new java.util.ArrayList<>();
     for (Step value : Step.values()) {
+      if (value == Step.EXPERTISE && !hasExpertise()) continue;
       if (value == Step.CLASS_SKILLS && !hasClassSkills()) continue;
       if (value == Step.BACKGROUND_LOADOUT
           && (background.key.isEmpty() || !background.loadoutSupported)) continue;
@@ -156,6 +176,7 @@ public final class CharacterDraft implements Serializable {
         || name.trim().isEmpty()
         || name.trim().length() > 160
         || !abilities.complete()
+        || (hasExpertise() && !expertiseValid())
         || (hasClassSkills() && !classSkills.valid())
         || level < 1
         || level > 20
@@ -214,6 +235,8 @@ public final class CharacterDraft implements Serializable {
       }
       if (hasClassSkills())
         creation.put("classSkills", new java.util.ArrayList<>(classSkills.selected));
+      if (hasExpertise())
+        creation.put("expertise", new java.util.ArrayList<>(classSkills.expertise));
       creation.put("background", choice);
       result.put("creation", creation);
     }

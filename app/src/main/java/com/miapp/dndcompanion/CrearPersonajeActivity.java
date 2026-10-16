@@ -38,6 +38,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     "Conocé tu especie",
     "Conocé tu clase",
     "Elegí tus habilidades",
+    "Elegí tus pericias",
     "Dale una identidad",
     "Revisá tu personaje"
   };
@@ -122,6 +123,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
 
   private void render() {
     syncClassSkills();
+    d.classSkills.expertise.retainAll(d.expertiseOptions());
     JSONObject basics = model.selectedClass();
     if (basics != null && model.creation.optInt("classBasicsVersion") == 1) {
       d.basicsClassKey = basics.optString("key");
@@ -184,6 +186,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
         break;
       case CLASS_GUIDE:
         classGuide();
+        break;
+      case EXPERTISE:
+        expertise();
         break;
       case CLASS_SKILLS:
         classSkills();
@@ -647,6 +652,10 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                     allowed);
                 d.background.skillGrantsApplied =
                     model.creation != null && model.creation.optInt("backgroundSkillsVersion") == 1;
+                JSONArray grantedSkills = row.optJSONArray("skillGrants");
+                if (grantedSkills != null)
+                  for (int i = 0; i < grantedSkills.length(); i++)
+                    d.background.skillKeys.add(grantedSkills.optString(i));
                 JSONArray toolOptions = row.optJSONArray("toolOptions");
                 if (model.creation.optInt("backgroundLoadoutVersion") == 1
                     && toolOptions != null
@@ -906,6 +915,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     if (!d.classSkills.classKey.equals(key)) d.classSkills.clear();
     JSONObject choices = row.optJSONObject("skillChoices");
     if (choices == null) return;
+    d.classSkills.expertiseEnabled = model.creation.optInt("rogueExpertiseVersion") == 1;
     d.classSkills.classKey = key;
     d.classSkills.count = choices.optInt("count");
     d.classSkills.keys.clear();
@@ -913,6 +923,11 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     JSONArray options = choices.optJSONArray("options"),
         labels = model.creation.optJSONArray("skills");
     if (options == null || labels == null) return;
+    for (int i = 0; i < labels.length(); i++) {
+      JSONObject label = labels.optJSONObject(i);
+      if (label != null)
+        d.classSkills.allNames.put(label.optString("key"), label.optString("name"));
+    }
     for (int i = 0; i < options.length(); i++) {
       String option = options.optString(i);
       for (int j = 0; j < labels.length(); j++) {
@@ -954,6 +969,30 @@ public class CrearPersonajeActivity extends AppCompatActivity {
           (button, checked) -> {
             if (checked) d.classSkills.selected.add(key);
             else d.classSkills.selected.remove(key);
+            render();
+          });
+      body.addView(choice);
+    }
+  }
+
+  private void expertise() {
+    body.addView(
+        text(
+            "Elegí dos habilidades con competencia. La pericia duplica el bono de competencia, no"
+                + " el modificador completo.",
+            18));
+    body.addView(text("Seleccionadas: " + d.classSkills.expertise.size() + " de 2", 16));
+    for (String key : d.expertiseOptions()) {
+      CheckBox choice = new CheckBox(this);
+      choice.setText(d.classSkills.allNames.getOrDefault(key, key));
+      choice.setTextColor(getColor(R.color.texto));
+      choice.setMinHeight(dp(48));
+      choice.setChecked(d.classSkills.expertise.contains(key));
+      choice.setEnabled(choice.isChecked() || d.classSkills.expertise.size() < 2);
+      choice.setOnCheckedChangeListener(
+          (button, checked) -> {
+            if (checked) d.classSkills.expertise.add(key);
+            else d.classSkills.expertise.remove(key);
             render();
           });
       body.addView(choice);
@@ -1055,6 +1094,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                     + CharacterDraft.ABILITIES[
                         CreationViewModel.abilityIndex(d.background.castingAbility)],
                 16));
+    }
+    if (d.hasExpertise()) {
+      java.util.List<String> names = new ArrayList<>();
+      for (String key : d.classSkills.expertise)
+        names.add(d.classSkills.allNames.getOrDefault(key, key));
+      body.addView(text("Pericia: " + String.join(", ", names), 16));
     }
     if (d.hasClassSkills()) {
       java.util.List<String> names = new ArrayList<>();

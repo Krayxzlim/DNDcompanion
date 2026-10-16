@@ -7,6 +7,9 @@ import java.util.List;
 public final class ClassSkillChoice implements Serializable {
   public String classKey = "";
   public int count;
+  public boolean expertiseEnabled;
+  public final List<String> expertise = new ArrayList<>();
+  public final java.util.Map<String, String> allNames = new java.util.LinkedHashMap<>();
   public final List<String> keys = new ArrayList<>(),
       names = new ArrayList<>(),
       selected = new ArrayList<>();
@@ -24,5 +27,8 @@ public final class ClassSkillChoice implements Serializable {
     keys.clear();
     names.clear();
     selected.clear();
+    expertise.clear();
+    allNames.clear();
+    expertiseEnabled = false;
   }
 }

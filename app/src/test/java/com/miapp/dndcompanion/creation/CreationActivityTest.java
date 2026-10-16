@@ -442,6 +442,48 @@ public class CreationActivityTest {
     c.pause().stop().destroy();
   }
 
+  @Test
+  public void expertiseUsesOnlyProficientSkillsAndSurvivesRecreation() throws Exception {
+    CharacterDraft d = draft();
+    d.classIndex = 9;
+    d.name = "Ada";
+    d.background.select("srd-2024_sage", "Sabio", "", new int[] {2, 3, 4});
+    d.background.increases[2] = 1;
+    d.background.increases[3] = 2;
+    d.background.skillGrantsApplied = true;
+    d.background.skillKeys.add("arcana");
+    d.background.skillKeys.add("history");
+    d.classSkills.classKey = "rogue";
+    d.classSkills.count = 4;
+    d.classSkills.expertiseEnabled = true;
+    d.classSkills.keys.addAll(
+        java.util.Arrays.asList("stealth", "investigation", "perception", "acrobatics"));
+    d.classSkills.selected.addAll(d.classSkills.keys);
+    for (String key : d.expertiseOptions()) d.classSkills.allNames.put(key, key);
+    d.step = CharacterDraft.Step.EXPERTISE;
+    ActivityController<OfflineActivity> c = start(d);
+    assertFalse(find(c.get(), "Continuar").isEnabled());
+    assertNull(find(c.get(), "athletics"));
+    find(c.get(), "stealth").performClick();
+    find(c.get(), "arcana").performClick();
+    assertTrue(find(c.get(), "Continuar").isEnabled());
+    assertFalse(find(c.get(), "history").isEnabled());
+    java.util.Map<String, Object> payload = d.payload();
+    Bundle state = new Bundle();
+    c.saveInstanceState(state).pause().stop().destroy();
+    ActivityController<OfflineActivity> restored =
+        Robolectric.buildActivity(OfflineActivity.class).create(state).start().resume().visible();
+    CreationViewModel fresh = new ViewModelProvider(restored.get()).get(CreationViewModel.class);
+    assertEquals(payload, fresh.draft.payload());
+    fresh.draft.classSkills.selected.remove("stealth");
+    fresh.draft.step = CharacterDraft.Step.CLASS_GUIDE;
+    fresh.changed();
+    assertFalse(fresh.draft.classSkills.expertise.contains("stealth"));
+    assertTrue(fresh.draft.classSkills.expertise.contains("arcana"));
+    assertFalse(fresh.draft.expertiseValid());
+    restored.pause().stop().destroy();
+  }
+
   private void select(ActivityController<OfflineActivity> c, String label, int index) {
     Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     spinner(c.get().getWindow().getDecorView(), label).setSelection(index);
