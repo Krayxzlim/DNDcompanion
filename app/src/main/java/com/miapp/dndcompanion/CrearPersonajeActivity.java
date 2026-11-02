@@ -40,6 +40,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     "Elegí tus habilidades",
     "Elegí tus pericias",
     "Dale una identidad",
+    "Elegí tu protección",
     "Revisá tu personaje"
   };
 
@@ -85,6 +86,7 @@ public class CrearPersonajeActivity extends AppCompatActivity {
               || d.step == CharacterDraft.Step.ALLOCATION
               || d.step == CharacterDraft.Step.SPECIES_GUIDE
               || d.step == CharacterDraft.Step.CLASS_GUIDE
+              || d.step == CharacterDraft.Step.DEFENSE
               || d.step == CharacterDraft.Step.REVIEW) render();
         });
     if (!model.loaded && !model.loading) loadCatalog();
@@ -123,6 +125,8 @@ public class CrearPersonajeActivity extends AppCompatActivity {
 
   private void render() {
     syncClassSkills();
+    syncDefense();
+    model.invalidatePreviewIfChanged();
     d.classSkills.expertise.retainAll(d.expertiseOptions());
     JSONObject basics = model.selectedClass();
     if (basics != null && model.creation.optInt("classBasicsVersion") == 1) {
@@ -196,6 +200,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
       case IDENTITY:
         identity();
         break;
+      case DEFENSE:
+        defense();
+        break;
       case REVIEW:
         review();
         break;
@@ -222,9 +229,18 @@ public class CrearPersonajeActivity extends AppCompatActivity {
             });
     footer.addView(next, new LinearLayout.LayoutParams(0, -2, 2));
     root.addView(footer);
-    next.setEnabled(d.canAdvance() && !model.saving && !model.uncertainSubmission);
+    next.setEnabled(
+        d.canAdvance()
+            && !model.saving
+            && !model.uncertainSubmission
+            && (d.step != CharacterDraft.Step.REVIEW || model.previewReady()));
     if (model.saving) enable(root, false);
     setContentView(root);
+    if (d.step == CharacterDraft.Step.REVIEW && d.defense.supported && !model.uncertainSubmission)
+      root.post(
+          () -> {
+            if (d.step == CharacterDraft.Step.REVIEW) requestStartingPreview(false);
+          });
     ViewCompat.requestApplyInsets(root);
     scroll.post(
         () -> {
@@ -742,7 +758,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
                           + " pendientes de completar. Este flujo admite nivel 1.",
               14));
     }
-    if (d.background.deferred)
+    if (d.defense.supported) {
+      body.addView(text("Elegí un trasfondo para terminar la ficha en este recorrido.", 14));
+    } else if (d.background.deferred)
       body.addView(text("Trasfondo pendiente · se guardarán solo los atributos base.", 16));
     else
       body.addView(
@@ -999,6 +1017,159 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     }
   }
 
+  private void syncDefense() {
+    if (model.creation == null
+        || model.creation.optInt("startingDefenseVersion") != 1
+        || d.classIndex < 0) return;
+    JSONObject catalog = model.creation.optJSONObject("startingDefense");
+    JSONObject classes = catalog == null ? null : catalog.optJSONObject("classes");
+    String key = CharacterDraft.CLASS_KEYS[d.classIndex];
+    JSONObject cl = classes == null ? null : classes.optJSONObject(key);
+    JSONArray armors = catalog == null ? null : catalog.optJSONArray("armors");
+    if (cl == null || armors == null) return;
+    if (!key.equals(d.defense.classKey)) d.defense.clearSelection();
+    d.defense.supported = true;
+    d.defense.classKey = key;
+    d.defense.classGold = cl.optInt("gold");
+    d.defense.shieldAllowed = cl.optBoolean("shield");
+    d.defense.keys.clear();
+    d.defense.names.clear();
+    d.defense.costs.clear();
+    d.defense.details.clear();
+    JSONArray types = cl.optJSONArray("armorTypes");
+    for (int i = 0; i < armors.length(); i++) {
+      JSONObject armor = armors.optJSONObject(i);
+      if (armor == null) continue;
+      boolean allowed = "none".equals(armor.optString("key"));
+      if (types != null)
+        for (int j = 0; j < types.length(); j++)
+          allowed |= types.optString(j).equals(armor.optString("category"));
+      if (allowed) {
+        d.defense.keys.add(armor.optString("key"));
+        d.defense.names.add(armor.optString("name"));
+        d.defense.costs.add(armor.optInt("costCopper"));
+        String note =
+            armor.optInt("strength") > 0
+                ? "Requiere Fuerza "
+                    + armor.optInt("strength")
+                    + " para evitar perder 10 pies de velocidad."
+                : "";
+        if (armor.optBoolean("stealthDisadvantage"))
+          note += " Desventaja en pruebas de Sigilo con esta armadura.";
+        d.defense.details.add(note.trim());
+      }
+    }
+    if (!d.defense.keys.contains(d.defense.armorKey)) d.defense.armorKey = "";
+    if (!d.defense.shieldAllowed) d.defense.shield = false;
+  }
+
+  private String gold(int copper) {
+    return java.math.BigDecimal.valueOf(copper, 2).stripTrailingZeros().toPlainString() + " po";
+  }
+
+  private void defense() {
+    body.addView(text("¿Con qué protección empezás?", 20));
+    body.addView(
+        text(
+            "Usás "
+                + d.defense.classGold
+                + " po de equipo de clase en lugar de su paquete, más el dinero del trasfondo. La"
+                + " protección se compra y queda equipada; el resto se conserva.",
+            16));
+    body.addView(text("Disponible: " + gold(d.defense.budget(d.background)), 18));
+    List<String> keys = new ArrayList<>(), labels = new ArrayList<>();
+    keys.add("");
+    labels.add("Elegí una protección");
+    for (int i = 0; i < d.defense.keys.size(); i++) {
+      if (d.defense.costs.get(i) + (d.defense.shield ? 1000 : 0) > d.defense.budget(d.background))
+        continue;
+      keys.add(d.defense.keys.get(i));
+      labels.add(d.defense.names.get(i) + " · " + gold(d.defense.costs.get(i)));
+    }
+    Spinner armor =
+        spinner(
+            labels.toArray(new String[0]),
+            Math.max(0, keys.indexOf(d.defense.armorKey)),
+            i -> {
+              if (!keys.get(i).equals(d.defense.armorKey)) {
+                d.defense.armorKey = keys.get(i);
+                render();
+              }
+            });
+    armor.setContentDescription("Protección inicial");
+    body.addView(armor);
+    int detailIndex = d.defense.keys.indexOf(d.defense.armorKey);
+    if (detailIndex >= 0
+        && detailIndex < d.defense.details.size()
+        && !d.defense.details.get(detailIndex).isEmpty())
+      body.addView(text(d.defense.details.get(detailIndex), 14));
+    if (d.defense.shieldAllowed) {
+      CheckBox shield = new CheckBox(this);
+      shield.setText("Agregar escudo · 10 po");
+      shield.setTextColor(getColor(R.color.texto));
+      shield.setMinHeight(dp(48));
+      shield.setChecked(d.defense.shield);
+      shield.setOnCheckedChangeListener(
+          (button, checked) -> {
+            d.defense.shield = checked;
+            render();
+          });
+      body.addView(shield);
+    }
+    if (d.defense.valid(d.background))
+      body.addView(
+          text("Te quedan " + gold(d.defense.budget(d.background) - d.defense.cost()), 18));
+    else body.addView(text("Elegí una protección que puedas pagar con tu dinero inicial.", 14));
+    body.addView(
+        text(
+            "En el siguiente paso vas a ver tus puntos de golpe, iniciativa, clase de armadura y"
+                + " velocidad calculados.",
+            16));
+  }
+
+  protected void requestStartingPreview(boolean retry) {
+    model.preview(
+        (json, callback) ->
+            ApiClient.get(getApplicationContext())
+                .request("POST", "/catalog/creation/background-preview", json, callback),
+        retry);
+  }
+
+  private void startingSummary() {
+    if (!model.previewReady()) {
+      body.addView(
+          text(
+              model.previewLoading
+                  ? "Calculando tu ficha…"
+                  : "Comprobando los valores de tu personaje…",
+              18));
+      if (!model.previewError.isEmpty()) {
+        body.addView(text(model.previewError, 16));
+        body.addView(button("Reintentar cálculo", () -> requestStartingPreview(true)));
+      }
+      return;
+    }
+    JSONObject stats = model.startingStats;
+    body.addView(text("Puntos de golpe: " + stats.optInt("hp"), 20));
+    body.addView(text("Clase de armadura: " + stats.optInt("ac"), 20));
+    body.addView(
+        text(
+            "Iniciativa: "
+                + String.format(java.util.Locale.ROOT, "%+d", stats.optInt("initiative")),
+            20));
+    body.addView(text("Velocidad: " + stats.optInt("speed") + " pies", 18));
+    body.addView(text("Dinero restante: " + gold(stats.optInt("copper")), 16));
+    details(
+        "Cómo se calcularon los valores",
+        stats.optString("hpExplanation") + "\n" + stats.optString("acExplanation"));
+    JSONArray warnings = stats.optJSONArray("warnings");
+    if (warnings != null && warnings.length() > 0) {
+      List<String> pending = new ArrayList<>();
+      for (int i = 0; i < warnings.length(); i++) pending.add(warnings.optString(i));
+      details("Elecciones que todavía requieren revisión", String.join("\n", pending));
+    }
+  }
+
   private void identity() {
     body.addView(text("Nombre", 18));
     EditText name = new EditText(this);
@@ -1034,7 +1205,9 @@ public class CrearPersonajeActivity extends AppCompatActivity {
   }
 
   private void review() {
-    if (d.hasClassBasics()) {
+    if (d.defense.supported) {
+      startingSummary();
+    } else if (d.hasClassBasics()) {
       body.addView(
           text(
               "PV base de nivel 1: "
@@ -1124,9 +1297,12 @@ public class CrearPersonajeActivity extends AppCompatActivity {
     }
     body.addView(
         text(
-            "Se guardarán tu identidad y los atributos del resumen. Después, usá Completar ficha"
-                + " para PV, competencias y recursos. Revisá también tu trasfondo, rasgos y"
-                + " conjuros con el manual.",
+            d.defense.supported
+                ? "Los PV, la iniciativa, la CA y la velocidad quedan listos al crear. Las"
+                    + " elecciones adicionales de rasgos y conjuros se revisan por separado."
+                : "Se guardarán tu identidad y los atributos del resumen. Después, usá Completar"
+                    + " ficha para PV, competencias y recursos. Revisá también tu trasfondo,"
+                    + " rasgos y conjuros con el manual.",
             16));
     if (!model.saveError.isEmpty()) body.addView(text(model.saveError, 16));
   }

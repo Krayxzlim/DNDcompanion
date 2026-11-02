@@ -142,8 +142,98 @@ public final class CreationViewModel extends ViewModel {
     void post(JSONObject body, ApiClient.Callback callback);
   }
 
+  public JSONObject startingStats;
+  public boolean previewLoading;
+  public String previewError = "";
+  private String previewKey = "", attemptedPreviewKey = "";
+  private int previewRevision;
+
+  private String currentPreviewKey() {
+    if (!draft.defense.supported) return "";
+    try {
+      return draft.payload().get("creation").toString();
+    } catch (IllegalStateException e) {
+      return "";
+    }
+  }
+
+  public void invalidatePreviewIfChanged() {
+    String current = currentPreviewKey();
+    if (!attemptedPreviewKey.equals(current)) {
+      previewRevision++;
+      attemptedPreviewKey = "";
+      previewKey = "";
+      startingStats = null;
+      previewLoading = false;
+      previewError = "";
+    }
+  }
+
+  public boolean previewReady() {
+    return !draft.defense.supported
+        || (startingStats != null
+            && !previewKey.isEmpty()
+            && previewKey.equals(currentPreviewKey()));
+  }
+
+  public void preview(Submit submit, boolean retry) {
+    if (!draft.defense.supported || saving || uncertainSubmission) return;
+    invalidatePreviewIfChanged();
+    final String key = currentPreviewKey();
+    if (key.isEmpty()
+        || previewLoading
+        || previewReady()
+        || (!retry && key.equals(attemptedPreviewKey))) return;
+    final int revision = ++previewRevision;
+    final JSONObject body = new JSONObject((java.util.Map<?, ?>) draft.payload().get("creation"));
+    attemptedPreviewKey = key;
+    previewLoading = true;
+    previewError = "";
+    changed();
+    submit.post(
+        body,
+        new ApiClient.Callback() {
+          private boolean current() {
+            return revision == previewRevision && key.equals(currentPreviewKey());
+          }
+
+          public void success(Object data) {
+            if (!current()) return;
+            previewLoading = false;
+            JSONObject stats =
+                data instanceof JSONObject
+                    ? ((JSONObject) data).optJSONObject("startingStats")
+                    : null;
+            if (stats == null
+                || !stats.has("hp")
+                || !stats.has("ac")
+                || !stats.has("initiative")
+                || !stats.has("speed")) {
+              previewError = "No pudimos comprobar la ficha. Reintentá el cálculo.";
+            } else {
+              startingStats = stats;
+              previewKey = key;
+            }
+            changed();
+          }
+
+          public void failure(String message, int status) {
+            if (!current()) return;
+            previewLoading = false;
+            previewError = message;
+            if (status == 401) errorStatus = status;
+            changed();
+          }
+        });
+  }
+
   public void save(Submit submit) {
     if (saving || uncertainSubmission || createdId != null) return;
+    if (!previewReady()) {
+      saveError = "Primero comprobá los valores de la ficha.";
+      changed();
+      return;
+    }
     final JSONObject body;
     try {
       body = new JSONObject(draft.payload());

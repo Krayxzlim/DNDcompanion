@@ -23,6 +23,22 @@ import org.robolectric.annotation.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class FraguaViewTest {
   @Test
+  public void readyCharacterDoesNotAskToCompleteTheSheetAgain() throws Exception {
+    Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+    JSONObject sheet =
+        new JSONObject(
+            new String(
+                getClass().getResourceAsStream("/sheet.json").readAllBytes(),
+                StandardCharsets.UTF_8));
+    sheet.getJSONObject("state").put("configured", true);
+    HomeScreen ready = new HomeScreen(activity, sheet, false, (destination, item) -> {});
+    assertEquals(View.GONE, ready.findViewById(R.id.home_configure).getVisibility());
+    sheet.getJSONObject("state").put("configured", false);
+    HomeScreen legacy = new HomeScreen(activity, sheet, false, (destination, item) -> {});
+    assertEquals(View.VISIBLE, legacy.findViewById(R.id.home_configure).getVisibility());
+  }
+
+  @Test
   public void homeRoutesCharacterInventoryNotesAndRadialWithoutChangingSnapshot() throws Exception {
     Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
     JSONObject sheet =

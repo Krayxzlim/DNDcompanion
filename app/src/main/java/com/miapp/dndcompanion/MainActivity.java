@@ -1318,19 +1318,23 @@ public class MainActivity extends AppCompatActivity {
                               x.optInt("bonus"));
                       if (type.getSelectedItemPosition() == 2)
                         try {
-                          item.put(
-                              "armor",
-                              obj(
-                                  "base",
-                                  number(armorBase),
-                                  "dexterity",
-                                  true,
-                                  "dexCap",
-                                  number(dexCap),
-                                  "shield",
-                                  0,
-                                  "bonus",
-                                  0));
+                          JSONObject previousArmor = x.optJSONObject("armor");
+                          JSONObject changedArmor =
+                              previousArmor == null
+                                  ? new JSONObject()
+                                  : new JSONObject(previousArmor.toString());
+                          changedArmor.put("base", number(armorBase));
+                          changedArmor.put(
+                              "dexterity",
+                              previousArmor == null
+                                  ? number(dexCap) != 0
+                                  : previousArmor.optBoolean("dexterity", true));
+                          changedArmor.put("dexCap", number(dexCap));
+                          changedArmor.put(
+                              "shield", previousArmor == null ? 0 : previousArmor.optInt("shield"));
+                          changedArmor.put(
+                              "bonus", previousArmor == null ? 0 : previousArmor.optInt("bonus"));
+                          item.put("armor", changedArmor);
                         } catch (Exception ignored) {
                         }
                       vm.command("inventory", obj("operation", "upsert", "item", item));

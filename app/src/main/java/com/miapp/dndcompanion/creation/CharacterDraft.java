@@ -18,6 +18,7 @@ public final class CharacterDraft implements Serializable {
     CLASS_SKILLS,
     EXPERTISE,
     IDENTITY,
+    DEFENSE,
     REVIEW
   }
 
@@ -90,6 +91,8 @@ public final class CharacterDraft implements Serializable {
         && expertiseOptions().containsAll(classSkills.expertise);
   }
 
+  public final StartingDefenseChoice defense = new StartingDefenseChoice();
+
   public final BackgroundChoice background = new BackgroundChoice();
 
   public int finalScore(int index) {
@@ -129,7 +132,7 @@ public final class CharacterDraft implements Serializable {
       case ALLOCATION:
         return abilities.complete();
       case BACKGROUND:
-        return background.deferred || background.valid();
+        return (!defense.supported && background.deferred) || background.valid();
       case BACKGROUND_LOADOUT:
         return background.loadoutValid();
       case ORIGIN_FEAT:
@@ -138,6 +141,8 @@ public final class CharacterDraft implements Serializable {
         return expertiseValid();
       case CLASS_SKILLS:
         return classSkills.valid();
+      case DEFENSE:
+        return defense.valid(background);
       case IDENTITY:
         return !name.trim().isEmpty();
       default:
@@ -148,6 +153,7 @@ public final class CharacterDraft implements Serializable {
   public java.util.List<Step> steps() {
     java.util.List<Step> result = new java.util.ArrayList<>();
     for (Step value : Step.values()) {
+      if (value == Step.DEFENSE && !defense.supported) continue;
       if (value == Step.EXPERTISE && !hasExpertise()) continue;
       if (value == Step.CLASS_SKILLS && !hasClassSkills()) continue;
       if (value == Step.BACKGROUND_LOADOUT
@@ -176,6 +182,7 @@ public final class CharacterDraft implements Serializable {
         || name.trim().isEmpty()
         || name.trim().length() > 160
         || !abilities.complete()
+        || (defense.supported && (background.key.isEmpty() || !defense.valid(background)))
         || (hasExpertise() && !expertiseValid())
         || (hasClassSkills() && !classSkills.valid())
         || level < 1
@@ -237,6 +244,12 @@ public final class CharacterDraft implements Serializable {
         creation.put("classSkills", new java.util.ArrayList<>(classSkills.selected));
       if (hasExpertise())
         creation.put("expertise", new java.util.ArrayList<>(classSkills.expertise));
+      if (defense.supported) {
+        Map<String, Object> protection = new LinkedHashMap<>();
+        protection.put("armorKey", defense.armorKey);
+        protection.put("shield", defense.shield);
+        creation.put("startingDefense", protection);
+      }
       creation.put("background", choice);
       result.put("creation", creation);
     }

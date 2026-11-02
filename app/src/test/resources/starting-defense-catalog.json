@@ -1,0 +1,272 @@
+{
+  "armors": [
+    {
+      "key": "none",
+      "name": "Sin armadura",
+      "category": "none",
+      "costCopper": 0,
+      "base": 10,
+      "dexterity": true,
+      "dexCap": 99,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "padded",
+      "name": "Acolchada",
+      "category": "light",
+      "costCopper": 500,
+      "base": 11,
+      "dexterity": true,
+      "dexCap": 99,
+      "strength": 0,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "leather",
+      "name": "Cuero",
+      "category": "light",
+      "costCopper": 1000,
+      "base": 11,
+      "dexterity": true,
+      "dexCap": 99,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "studdedLeather",
+      "name": "Cuero tachonado",
+      "category": "light",
+      "costCopper": 4500,
+      "base": 12,
+      "dexterity": true,
+      "dexCap": 99,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "hide",
+      "name": "Pieles",
+      "category": "medium",
+      "costCopper": 1000,
+      "base": 12,
+      "dexterity": true,
+      "dexCap": 2,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "chainShirt",
+      "name": "Camisote de malla",
+      "category": "medium",
+      "costCopper": 5000,
+      "base": 13,
+      "dexterity": true,
+      "dexCap": 2,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "scaleMail",
+      "name": "Cota de escamas",
+      "category": "medium",
+      "costCopper": 5000,
+      "base": 14,
+      "dexterity": true,
+      "dexCap": 2,
+      "strength": 0,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "breastplate",
+      "name": "Coraza",
+      "category": "medium",
+      "costCopper": 40000,
+      "base": 14,
+      "dexterity": true,
+      "dexCap": 2,
+      "strength": 0,
+      "stealthDisadvantage": false,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "halfPlate",
+      "name": "Semiplacas",
+      "category": "medium",
+      "costCopper": 75000,
+      "base": 15,
+      "dexterity": true,
+      "dexCap": 2,
+      "strength": 0,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "ringMail",
+      "name": "Cota de anillas",
+      "category": "heavy",
+      "costCopper": 3000,
+      "base": 14,
+      "dexterity": false,
+      "dexCap": 99,
+      "strength": 0,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "chainMail",
+      "name": "Cota de malla",
+      "category": "heavy",
+      "costCopper": 7500,
+      "base": 16,
+      "dexterity": false,
+      "dexCap": 99,
+      "strength": 13,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "splint",
+      "name": "Bandas",
+      "category": "heavy",
+      "costCopper": 20000,
+      "base": 17,
+      "dexterity": false,
+      "dexCap": 99,
+      "strength": 15,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    },
+    {
+      "key": "plate",
+      "name": "Placas",
+      "category": "heavy",
+      "costCopper": 150000,
+      "base": 18,
+      "dexterity": false,
+      "dexCap": 99,
+      "strength": 15,
+      "stealthDisadvantage": true,
+      "source": "Open5e · SRD 2024 · 07_armor_items"
+    }
+  ],
+  "shieldCostCopper": 1000,
+  "classes": {
+    "barbarian": {
+      "gold": 75,
+      "armorTypes": [
+        "light",
+        "medium"
+      ],
+      "shield": true,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_barbarian_core-traits"
+    },
+    "bard": {
+      "gold": 90,
+      "armorTypes": [
+        "light"
+      ],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_bard_core-traits"
+    },
+    "cleric": {
+      "gold": 110,
+      "armorTypes": [
+        "light",
+        "medium"
+      ],
+      "shield": true,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_cleric_core-traits"
+    },
+    "druid": {
+      "gold": 50,
+      "armorTypes": [
+        "light"
+      ],
+      "shield": true,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_druid_core-traits"
+    },
+    "fighter": {
+      "gold": 155,
+      "armorTypes": [
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "shield": true,
+      "goldOption": "C",
+      "source": "Open5e · SRD 2024 · srd-2024_fighter_core-traits"
+    },
+    "monk": {
+      "gold": 50,
+      "armorTypes": [],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_monk_core-traits"
+    },
+    "paladin": {
+      "gold": 150,
+      "armorTypes": [
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "shield": true,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_paladin_core-traits"
+    },
+    "ranger": {
+      "gold": 150,
+      "armorTypes": [
+        "light",
+        "medium"
+      ],
+      "shield": true,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_ranger_core-traits"
+    },
+    "rogue": {
+      "gold": 100,
+      "armorTypes": [
+        "light"
+      ],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_rogue_core-traits"
+    },
+    "sorcerer": {
+      "gold": 50,
+      "armorTypes": [],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_sorcerer_core-traits"
+    },
+    "warlock": {
+      "gold": 100,
+      "armorTypes": [
+        "light"
+      ],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_warlock_core-traits"
+    },
+    "wizard": {
+      "gold": 55,
+      "armorTypes": [],
+      "shield": false,
+      "goldOption": "B",
+      "source": "Open5e · SRD 2024 · srd-2024_wizard_core-traits"
+    }
+  }
+}
